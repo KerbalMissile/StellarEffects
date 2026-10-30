@@ -14,9 +14,8 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <KSPDIR Condition="'$(KSPDIR)' == '' And Exists('C:\Program Files (x86)\Steam\steamapps\common\Kerbal Space Program')">C:\Program Files (x86)\Steam\steamapps\common\Kerbal Space Program</KSPDIR>
-    <KSPDIR Condition="'$(KSPDIR)' == '' And Exists('$(HOME)/.steam/steam/steamapps/common/Kerbal Space Program')">$(HOME)/.steam/steam/steamapps/common/Kerbal Space Program</KSPDIR>
-    <KSPDIR Condition="'$(KSPDIR)' == '' And Exists('$(HOME)/Library/Application Support/Steam/steamapps/common/Kerbal Space Program')">$(HOME)/Library/Application Support/Steam/steamapps/common/Kerbal Space Program</KSPDIR>
+    <!-- You'll need to change this when building locally -->
+    <KSPDIR Condition="'$(KSPDIR)' == ''">D:\SteamLibrary\steamapps\common\ModTestingKSP</KSPDIR>
 
     <KSPManaged Condition="Exists('$(KSPDIR)\KSP_x64_Data\Managed')">$(KSPDIR)\KSP_x64_Data\Managed</KSPManaged>
     <KSPManaged Condition="'$(KSPManaged)' == '' And Exists('$(KSPDIR)/KSP.app/Contents/Resources/Data/Managed')">$(KSPDIR)/KSP.app/Contents/Resources/Data/Managed</KSPManaged>
