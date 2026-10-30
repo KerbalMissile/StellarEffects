@@ -21,14 +21,15 @@ call "%~dp0build.bat" %*
 if errorlevel 1 exit /b 1
 
 set "STAGE=%ROOT%\Packages\stage"
+set "DEST=%STAGE%\GameData\%NAME%"
 set "ZIP=%ROOT%\Packages\%NAME%-v%VERSION%.zip"
 
 if exist "%STAGE%" rmdir /s /q "%STAGE%"
 if exist "%ZIP%" del "%ZIP%"
-mkdir "%STAGE%\GameData"
+mkdir "%DEST%"
 
-xcopy "%ROOT%\Plugins" "%STAGE%\GameData\Plugins" /e /i /y >nul
-xcopy "%ROOT%\Configs" "%STAGE%\GameData\Configs" /e /i /y >nul
+xcopy "%ROOT%\Plugins" "%DEST%\Plugins" /e /i /y >nul
+xcopy "%ROOT%\Configs" "%DEST%\Configs" /e /i /y >nul
 
 tar -a -cf "%ZIP%" -C "%STAGE%" GameData
 if errorlevel 1 (
