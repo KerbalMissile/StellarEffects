@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="KSPDIR.props" Condition="Exists('KSPDIR.props')" />
+
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>StellarEffects</AssemblyName>
+    <RootNamespace>StellarEffects</RootNamespace>
+    <Version>1.0.0</Version>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <KSPDIR Condition="'$(KSPDIR)' == '' And Exists('C:\Program Files (x86)\Steam\steamapps\common\Kerbal Space Program')">C:\Program Files (x86)\Steam\steamapps\common\Kerbal Space Program</KSPDIR>
+    <KSPDIR Condition="'$(KSPDIR)' == '' And Exists('$(HOME)/.steam/steam/steamapps/common/Kerbal Space Program')">$(HOME)/.steam/steam/steamapps/common/Kerbal Space Program</KSPDIR>
+    <KSPDIR Condition="'$(KSPDIR)' == '' And Exists('$(HOME)/Library/Application Support/Steam/steamapps/common/Kerbal Space Program')">$(HOME)/Library/Application Support/Steam/steamapps/common/Kerbal Space Program</KSPDIR>
+
+    <KSPManaged Condition="Exists('$(KSPDIR)\KSP_x64_Data\Managed')">$(KSPDIR)\KSP_x64_Data\Managed</KSPManaged>
+    <KSPManaged Condition="'$(KSPManaged)' == '' And Exists('$(KSPDIR)/KSP.app/Contents/Resources/Data/Managed')">$(KSPDIR)/KSP.app/Contents/Resources/Data/Managed</KSPManaged>
+  </PropertyGroup>
+
+  <Target Name="CheckKSPDIR" BeforeTargets="ResolveAssemblyReferences" Condition="'$(KSPManaged)' == ''">
+    <Error Text="KSP install not found. Set the KSPDIR environment variable or create KSPDIR.props next to this csproj." />
+  </Target>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="$(KSPManaged)\Assembly-CSharp.dll" Private="false" />
+    <Reference Include="$(KSPManaged)\Assembly-CSharp-firstpass.dll" Private="false" />
+    <Reference Include="$(KSPManaged)\UnityEngine*.dll" Private="false" />
+  </ItemGroup>
+
+  <Target Name="CopyToPlugins" AfterTargets="Build">
+    <Copy SourceFiles="$(TargetPath)"
+          DestinationFiles="$(MSBuildProjectDirectory)\..\Plugins\StellarEffects.dll" />
+  </Target>
+
+</Project>
