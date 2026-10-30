@@ -37,6 +37,24 @@
 # Visual Studio cache directory
 .vs/
 
+# .NET build output
+/[Bb]in/
+[Bb]in/
+[Oo]bj/
+
+# .NET CLI / NuGet
+.dotnet/
+*.nupkg
+*.snupkg
+project.assets.json
+*.nuget.props
+*.nuget.targets
+
+# Test and build logs
+[Tt]est[Rr]esult*/
+*.binlog
+*.cache
+
 # Gradle cache directory
 .gradle/
 
