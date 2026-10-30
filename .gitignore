@@ -127,3 +127,7 @@ InitTestScene*.unity*
 
 Plugins/
 Plugins/*
+
+# My custom script folders to ignore
+
+Packages/

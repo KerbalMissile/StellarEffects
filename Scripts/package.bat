@@ -20,19 +20,15 @@ echo.
 call "%~dp0build.bat" %*
 if errorlevel 1 exit /b 1
 
-set "STAGE=%ROOT%\Build\stage"
-set "DEST=%STAGE%\GameData\%NAME%"
-set "ZIP=%ROOT%\Build\%NAME%-v%VERSION%.zip"
+set "STAGE=%ROOT%\Packages\stage"
+set "ZIP=%ROOT%\Packages\%NAME%-v%VERSION%.zip"
 
 if exist "%STAGE%" rmdir /s /q "%STAGE%"
 if exist "%ZIP%" del "%ZIP%"
-mkdir "%DEST%\Plugins"
+mkdir "%STAGE%\GameData"
 
-copy /y "%ROOT%\Plugins\%NAME%.dll" "%DEST%\Plugins\" >nul
-if exist "%ROOT%\Configs" xcopy "%ROOT%\Configs" "%DEST%\Configs" /e /i /y >nul
-if exist "%ROOT%\Assets\Textures" xcopy "%ROOT%\Assets\Textures" "%DEST%\Textures" /e /i /y >nul
-if exist "%ROOT%\LICENSE" copy /y "%ROOT%\LICENSE" "%DEST%\" >nul
-if exist "%ROOT%\README.md" copy /y "%ROOT%\README.md" "%DEST%\" >nul
+xcopy "%ROOT%\Plugins" "%STAGE%\GameData\Plugins" /e /i /y >nul
+xcopy "%ROOT%\Configs" "%STAGE%\GameData\Configs" /e /i /y >nul
 
 tar -a -cf "%ZIP%" -C "%STAGE%" GameData
 if errorlevel 1 (
@@ -44,6 +40,6 @@ if errorlevel 1 (
 rmdir /s /q "%STAGE%"
 
 echo.
-echo Done: Build\%NAME%-v%VERSION%.zip
+echo Done: Packages\%NAME%-v%VERSION%.zip
 
 endlocal
