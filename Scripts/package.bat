@@ -29,7 +29,6 @@ if exist "%ZIP%" del "%ZIP%"
 mkdir "%DEST%"
 
 xcopy "%ROOT%\Plugins" "%DEST%\Plugins" /e /i /y >nul
-xcopy "%ROOT%\Configs" "%DEST%\Configs" /e /i /y >nul
 xcopy "%ROOT%\Shaders" "%DEST%\Shaders" /e /i /y >nul
 
 tar -a -cf "%ZIP%" -C "%STAGE%" GameData
