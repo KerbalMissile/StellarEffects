@@ -20,7 +20,6 @@ unity/**/*.sln
 Directory.Build.local.props
 Packages/
 Build/
-Plugins/
 
 # Benchmark and capture output
 captures/
