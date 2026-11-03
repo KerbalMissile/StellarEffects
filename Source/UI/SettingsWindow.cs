@@ -1,4 +1,8 @@
+using System.Collections.Generic;
+using System.Globalization;
 using System.Reflection;
+using StellarEffects.Blackholes;
+using StellarEffects.Quasars;
 using UnityEngine;
 
 namespace StellarEffects.UI
@@ -8,11 +12,23 @@ namespace StellarEffects.UI
     {
         private const string LockId = "StellarEffects_SettingsWindow";
         private const int WindowId = 0x53544C52;
+        private const float ListWidth = 150f;
+        private const float LabelWidth = 110f;
+        private const float SliderWidth = 220f;
+        private const float BoxWidth = 84f;
 
         private static string version = ReadVersion();
 
-        private Rect rect = new Rect(120, 120, 500, 400);
+        private readonly Dictionary<string, string> buffers = new Dictionary<string, string>();
+        private Rect rect = new Rect(120, 120, 700, 580);
+        private Vector2 listScroll;
+        private Vector2 fieldScroll;
+        private string newBody = "";
+        private string status = "";
+        private int selected;
         private bool visible;
+        private bool confirmRemove;
+        private bool quasarMode;
 
         void Awake()
         {
@@ -36,7 +52,7 @@ namespace StellarEffects.UI
             if (!visible) return;
 
             GUI.skin = HighLogic.Skin;
-            rect = GUI.Window(WindowId, rect, Draw, "StellarEffects v" + version);
+            rect = GUI.Window(WindowId, rect, Draw, "StellarEffects v" + version + " (Ctrl + Alt + V)");
 
             if (rect.Contains(Event.current.mousePosition))
                 InputLockManager.SetControlLock(ControlTypes.ALLBUTCAMERAS, LockId);
@@ -51,7 +67,427 @@ namespace StellarEffects.UI
 
         private void Draw(int id)
         {
-            GUI.DragWindow();
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Toggle(!quasarMode, "Black holes", GUI.skin.button) && quasarMode) SetMode(false);
+            if (GUILayout.Toggle(quasarMode, "Quasars", GUI.skin.button) && !quasarMode) SetMode(true);
+            GUILayout.EndHorizontal();
+
+            if (quasarMode)
+            {
+                DrawQuasarTab();
+                GUI.DragWindow(new Rect(0, 0, 10000, 22));
+                return;
+            }
+
+            BlackHoleManager manager = BlackHoleManager.Instance;
+            if (manager == null)
+            {
+                GUILayout.Label("Black holes are not loaded.");
+                GUI.DragWindow();
+                return;
+            }
+
+            List<BlackHoleDefinition> holes = manager.Holes;
+            selected = holes.Count == 0 ? -1 : Mathf.Clamp(selected, 0, holes.Count - 1);
+
+            GUILayout.BeginHorizontal();
+            DrawList(holes);
+            DrawEditor(holes);
+            GUILayout.EndHorizontal();
+
+            GUILayout.BeginHorizontal();
+            GUI.enabled = selected >= 0;
+            if (GUILayout.Button("Save")) Save(holes[selected]);
+            if (GUILayout.Button("Reset Config")) Reset(holes[selected]);
+            if (GUILayout.Button(confirmRemove ? "Click again to remove" : "Remove")) Remove(holes[selected]);
+            GUI.enabled = true;
+            GUILayout.EndHorizontal();
+
+            GUILayout.Label(status);
+
+            GUI.DragWindow(new Rect(0, 0, 10000, 22));
+        }
+
+        private void SetMode(bool quasars)
+        {
+            quasarMode = quasars;
+            selected = 0;
+            confirmRemove = false;
+            buffers.Clear();
+            status = "";
+            newBody = "";
+        }
+
+        private void DrawQuasarTab()
+        {
+            QuasarManager manager = QuasarManager.Instance;
+            if (manager == null)
+            {
+                GUILayout.Label("Quasars are not loaded.");
+                return;
+            }
+
+            if (!manager.ShaderReady)
+                GUILayout.Label("Quasar shader is missing from stellareffects.bundle. Quasars will not render. See KSP.log.");
+
+            List<QuasarDefinition> quasars = manager.Quasars;
+            selected = quasars.Count == 0 ? -1 : Mathf.Clamp(selected, 0, quasars.Count - 1);
+
+            GUILayout.BeginHorizontal();
+            DrawQuasarList(quasars);
+            DrawQuasarEditor(quasars);
+            GUILayout.EndHorizontal();
+
+            GUILayout.BeginHorizontal();
+            GUI.enabled = selected >= 0;
+            if (GUILayout.Button("Save")) SaveQuasar(quasars[selected]);
+            if (GUILayout.Button("Reset Config")) ResetQuasar(quasars[selected]);
+            if (GUILayout.Button(confirmRemove ? "Click again to remove" : "Remove")) RemoveQuasar(quasars[selected]);
+            GUI.enabled = true;
+            GUILayout.EndHorizontal();
+
+            GUILayout.Label(status);
+        }
+
+        private void DrawList(List<BlackHoleDefinition> holes)
+        {
+            GUILayout.BeginVertical(GUILayout.Width(ListWidth));
+
+            listScroll = GUILayout.BeginScrollView(listScroll, GUILayout.Height(320));
+            for (int i = 0; i < holes.Count; i++)
+            {
+                bool on = GUILayout.Toggle(selected == i, holes[i].Body, GUI.skin.button);
+                if (on && selected != i) Select(i);
+            }
+            GUILayout.EndScrollView();
+
+            GUILayout.Label("New body");
+            newBody = GUILayout.TextField(newBody);
+            if (GUILayout.Button("Add")) AddBody();
+
+            GUILayout.EndVertical();
+        }
+
+        private void DrawQuasarList(List<QuasarDefinition> quasars)
+        {
+            GUILayout.BeginVertical(GUILayout.Width(ListWidth));
+
+            listScroll = GUILayout.BeginScrollView(listScroll, GUILayout.Height(320));
+            for (int i = 0; i < quasars.Count; i++)
+            {
+                bool on = GUILayout.Toggle(selected == i, quasars[i].Body, GUI.skin.button);
+                if (on && selected != i) Select(i);
+            }
+            GUILayout.EndScrollView();
+
+            GUILayout.Label("New body");
+            newBody = GUILayout.TextField(newBody);
+            if (GUILayout.Button("Add")) AddQuasar();
+
+            GUILayout.EndVertical();
+        }
+
+        private void DrawEditor(List<BlackHoleDefinition> holes)
+        {
+            fieldScroll = GUILayout.BeginScrollView(fieldScroll, GUILayout.Height(400));
+
+            if (selected < 0)
+            {
+                GUILayout.Label("No black holes defined. Add a body on the left.");
+                GUILayout.EndScrollView();
+                return;
+            }
+
+            BlackHoleDefinition h = holes[selected];
+
+            h.HorizonRadius = Row("horizonRadius", h.HorizonRadius, 0f, 1e9f, false);
+            h.Temperature = Row("temperature", h.Temperature, 1000f, 40000f);
+            h.Brightness = Row("brightness", h.Brightness, 0f, 20f);
+            h.ColorSaturation = Row("colorSaturation", h.ColorSaturation, 0f, 10f);
+            h.DiskInner = Row("diskInner", h.DiskInner, 1.5f, 30f);
+            h.DiskOuter = Row("diskOuter", h.DiskOuter, 2.5f, 80f);
+            h.DiskThickness = Row("diskThickness", h.DiskThickness, 0.005f, 0.5f);
+            h.Glow = Row("glow", h.Glow, 0f, 5f);
+            h.PhotonRing = Row("photonRing", h.PhotonRing, 0f, 5f);
+            h.RotationSpeed = Row("rotationSpeed", h.RotationSpeed, -20f, 20f);
+            h.Turbulence = Row("turbulence", h.Turbulence, 0f, 1f);
+            h.Jets = GUILayout.Toggle(h.Jets, "jets");
+            h.JetBrightness = Row("jetBrightness", h.JetBrightness, 0f, 50f);
+            h.JetLength = Row("jetLength", h.JetLength, 5f, 5000f);
+            h.JetWidth = Row("jetWidth", h.JetWidth, 0.2f, 100f);
+            h.JetSpread = Row("jetSpread", h.JetSpread, 0f, 1.5f);
+            h.JetTwist = Row("jetTwist", h.JetTwist, 0f, 0.02f);
+            h.JetTemperature = Row("jetTemperature", h.JetTemperature, 3000f, 40000f);
+            h.JetSpeed = Row("jetSpeed", h.JetSpeed, 0f, 0.999f);
+            h.Steps = Mathf.RoundToInt(Row("steps", h.Steps, 32f, 600f));
+            h.Debug = Mathf.RoundToInt(Row("debug", h.Debug, 0f, 3f));
+
+            Vector3 normal = h.Normal;
+            normal.x = Row("normal x", normal.x, -20f, 20f);
+            normal.y = Row("normal y", normal.y, -20f, 20f);
+            normal.z = Row("normal z", normal.z, -20f, 20f);
+            h.Normal = normal;
+
+            h.HideBody = GUILayout.Toggle(h.HideBody, "hideBody");
+            h.Spin = GUILayout.Toggle(h.Spin < 0f, "reverse spin") ? -1f : 1f;
+
+            h.Clamp();
+
+            GUILayout.EndScrollView();
+        }
+
+        private void DrawQuasarEditor(List<QuasarDefinition> quasars)
+        {
+            fieldScroll = GUILayout.BeginScrollView(fieldScroll, GUILayout.Height(400));
+
+            if (selected < 0)
+            {
+                GUILayout.Label("No quasars defined. Add a body on the left.");
+                GUILayout.EndScrollView();
+                return;
+            }
+
+            QuasarDefinition q = quasars[selected];
+
+            q.Radius = Row("radius", q.Radius, 0f, 1e9f, false);
+            q.CoreBrightness = Row("coreBrightness", q.CoreBrightness, 0f, 30f, 0f, QuasarLimits.CoreBrightnessMax);
+            q.CoreSize = Row("coreSize", q.CoreSize, 0.5f, 100f, QuasarLimits.CoreSizeMin, QuasarLimits.CoreSizeMax);
+            q.CoreTemperature = Row("coreTemperature", q.CoreTemperature, 1000f, 40000f, 1000f, QuasarLimits.CoreTemperatureMax);
+            q.ColorSaturation = Row("colorSaturation", q.ColorSaturation, 0f, 6f, 0f, QuasarLimits.ColorSaturationMax);
+            q.Glare = Row("glare", q.Glare, 0f, 10f, 0f, QuasarLimits.GlareMax);
+            q.GlareSize = Row("glareSize", q.GlareSize, 2f, 500f, 2f, QuasarLimits.GlareSizeMax);
+            q.TorusDensity = Row("torusDensity", q.TorusDensity, 0f, 5f, 0f, QuasarLimits.TorusDensityMax);
+            q.TorusInner = Row("torusInner", q.TorusInner, 2f, 300f, 2f, QuasarLimits.TorusInnerMax);
+            q.TorusOuter = Row("torusOuter", q.TorusOuter, 4f, 600f, 4f, QuasarLimits.TorusOuterMax);
+            q.TorusThickness = Row("torusThickness", q.TorusThickness, 0.02f, 1.5f, QuasarLimits.TorusThicknessMin, QuasarLimits.TorusThicknessMax);
+            q.TorusTemperature = Row("torusTemperature", q.TorusTemperature, 800f, 6000f, 800f, QuasarLimits.TorusTemperatureMax);
+            q.TorusGlow = Row("torusGlow", q.TorusGlow, 0f, 10f, 0f, QuasarLimits.TorusGlowMax);
+            q.TorusClumpiness = Row("torusClumpiness", q.TorusClumpiness, 0f, 1f);
+            q.RotationSpeed = Row("rotationSpeed", q.RotationSpeed, -20f, 20f, -QuasarLimits.RotationSpeedMax, QuasarLimits.RotationSpeedMax);
+            q.Jets = GUILayout.Toggle(q.Jets, "jets");
+            q.JetBrightness = Row("jetBrightness", q.JetBrightness, 0f, 50f, 0f, QuasarLimits.JetBrightnessMax);
+            q.JetLength = Row("jetLength", q.JetLength, 5f, 5000f, 5f, QuasarLimits.JetLengthMax);
+            q.JetWidth = Row("jetWidth", q.JetWidth, 0.2f, 50f, 0.2f, QuasarLimits.JetWidthMax);
+            q.JetSpread = Row("jetSpread", q.JetSpread, 0f, 1.5f, 0f, QuasarLimits.JetSpreadMax);
+            q.JetTwist = Row("jetTwist", q.JetTwist, -0.02f, 0.02f, -QuasarLimits.JetTwistMax, QuasarLimits.JetTwistMax);
+            q.JetTemperature = Row("jetTemperature", q.JetTemperature, 3000f, 40000f, 3000f, QuasarLimits.JetTemperatureMax);
+            q.JetSpeed = Row("jetSpeed", q.JetSpeed, 0f, 0.999f, 0f, QuasarLimits.JetSpeedMax);
+            q.JetPlumeStart = Row("jetPlumeStart", q.JetPlumeStart, 0.1f, 1f, QuasarLimits.JetPlumeStartMin, QuasarLimits.JetPlumeStartMax);
+            q.JetPlumeWidth = Row("jetPlumeWidth", q.JetPlumeWidth, 0f, 0.3f, 0f, QuasarLimits.JetPlumeWidthMax);
+            q.JetPlumeBoost = Row("jetPlumeBoost", q.JetPlumeBoost, 0f, 10f, 0f, QuasarLimits.JetPlumeBoostMax);
+            q.Steps = Mathf.RoundToInt(Row("steps", q.Steps, 32f, 600f, 32f, QuasarLimits.StepsMax));
+
+            Vector3 normal = q.Normal;
+            normal.x = Row("normal x", normal.x, -20f, 20f, -QuasarLimits.NormalMax, QuasarLimits.NormalMax);
+            normal.y = Row("normal y", normal.y, -20f, 20f, -QuasarLimits.NormalMax, QuasarLimits.NormalMax);
+            normal.z = Row("normal z", normal.z, -20f, 20f, -QuasarLimits.NormalMax, QuasarLimits.NormalMax);
+            q.Normal = normal;
+
+            q.HideBody = GUILayout.Toggle(q.HideBody, "hideBody");
+            q.Spin = GUILayout.Toggle(q.Spin < 0f, "reverse spin") ? -1f : 1f;
+
+            q.Clamp();
+
+            GUILayout.EndScrollView();
+        }
+
+        private float Row(string label, float value, float min, float max, bool slider = true)
+        {
+            return Row(label, value, min, max, min, max, slider);
+        }
+
+        private float Row(string label, float value, float min, float max, float hardMin, float hardMax, bool slider = true)
+        {
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(label, GUILayout.Width(LabelWidth));
+
+            if (slider)
+            {
+                float shown = Mathf.Clamp(value, min, max);
+                float moved = GUILayout.HorizontalSlider(shown, min, max, GUILayout.Width(SliderWidth));
+                if (!Mathf.Approximately(moved, shown))
+                {
+                    value = moved;
+                    buffers[label] = Format(value);
+                }
+            }
+
+            bool focused = GUI.GetNameOfFocusedControl() == label;
+            string text;
+            if (!focused || !buffers.TryGetValue(label, out text))
+                text = Format(value);
+
+            GUI.SetNextControlName(label);
+            string typed = GUILayout.TextField(text, GUILayout.Width(BoxWidth));
+            if (typed != text)
+            {
+                buffers[label] = typed;
+                float parsed;
+                if (float.TryParse(typed, NumberStyles.Float, CultureInfo.InvariantCulture, out parsed))
+                    value = Mathf.Clamp(parsed, hardMin, hardMax);
+            }
+
+            GUILayout.EndHorizontal();
+            return value;
+        }
+
+        private void Select(int index)
+        {
+            selected = index;
+            confirmRemove = false;
+            buffers.Clear();
+            status = "";
+        }
+
+        private void AddBody()
+        {
+            BlackHoleManager manager = BlackHoleManager.Instance;
+            string name = newBody.Trim();
+            if (manager == null || name.Length == 0) return;
+
+            if (manager.Holes.Exists(h => h.Body == name))
+            {
+                status = name + " already has a black hole.";
+                return;
+            }
+
+            if (FlightGlobals.Bodies == null || !FlightGlobals.Bodies.Exists(b => b.bodyName == name))
+            {
+                status = "No body named " + name + ".";
+                return;
+            }
+
+            manager.Holes.Add(BlackHoleDefinition.CreateNew(name));
+            Select(manager.Holes.Count - 1);
+            newBody = "";
+            status = "Added " + name + ". Save to keep it.";
+        }
+
+        private void AddQuasar()
+        {
+            QuasarManager manager = QuasarManager.Instance;
+            string name = newBody.Trim();
+            if (manager == null || name.Length == 0) return;
+
+            if (manager.Quasars.Exists(h => h.Body == name))
+            {
+                status = name + " already has a quasar.";
+                return;
+            }
+
+            if (FlightGlobals.Bodies == null || !FlightGlobals.Bodies.Exists(b => b.bodyName == name))
+            {
+                status = "No body named " + name + ".";
+                return;
+            }
+
+            manager.Add(name);
+            Select(manager.Quasars.Count - 1);
+            newBody = "";
+            status = "Added " + name + ". Save to keep it.";
+        }
+
+        private void Remove(BlackHoleDefinition hole)
+        {
+            if (!confirmRemove)
+            {
+                confirmRemove = true;
+                status = "Click again to remove " + hole.Body + " and delete its config entry.";
+                return;
+            }
+
+            confirmRemove = false;
+
+            try
+            {
+                BlackHoleConfigWriter.Delete(hole);
+                BlackHoleManager.Instance.Remove(hole);
+                buffers.Clear();
+                status = "Removed " + hole.Body + ".";
+            }
+            catch (System.Exception e)
+            {
+                status = "Remove failed: " + e.Message;
+                Debug.LogError("[StellarEffects] Could not remove " + hole.Body + ": " + e);
+            }
+        }
+
+        private void RemoveQuasar(QuasarDefinition quasar)
+        {
+            if (!confirmRemove)
+            {
+                confirmRemove = true;
+                status = "Click again to remove " + quasar.Body + " and delete its config entry.";
+                return;
+            }
+
+            confirmRemove = false;
+
+            try
+            {
+                QuasarConfigWriter.Delete(quasar);
+                QuasarManager.Instance.Remove(quasar);
+                buffers.Clear();
+                status = "Removed " + quasar.Body + ".";
+            }
+            catch (System.Exception e)
+            {
+                status = "Remove failed: " + e.Message;
+                Debug.LogError("[StellarEffects] Could not remove quasar " + quasar.Body + ": " + e);
+            }
+        }
+
+        private void Save(BlackHoleDefinition hole)
+        {
+            confirmRemove = false;
+
+            try
+            {
+                string path = BlackHoleConfigWriter.Save(hole);
+                status = "Saved " + path.Replace(KSPUtil.ApplicationRootPath, "");
+            }
+            catch (System.Exception e)
+            {
+                status = "Save failed: " + e.Message;
+                Debug.LogError("[StellarEffects] Could not save " + hole.Body + ": " + e);
+            }
+        }
+
+        private void SaveQuasar(QuasarDefinition quasar)
+        {
+            confirmRemove = false;
+
+            try
+            {
+                string path = QuasarConfigWriter.Save(quasar);
+                status = "Saved " + path.Replace(KSPUtil.ApplicationRootPath, "");
+            }
+            catch (System.Exception e)
+            {
+                status = "Save failed: " + e.Message;
+                Debug.LogError("[StellarEffects] Could not save quasar " + quasar.Body + ": " + e);
+            }
+        }
+
+        private void Reset(BlackHoleDefinition hole)
+        {
+            confirmRemove = false;
+            hole.Revert();
+            buffers.Clear();
+            status = "Reset " + hole.Body + " to its saved config.";
+        }
+
+        private void ResetQuasar(QuasarDefinition quasar)
+        {
+            confirmRemove = false;
+            quasar.Revert();
+            buffers.Clear();
+            status = "Reset " + quasar.Body + " to its saved config.";
+        }
+
+        private static string Format(float value)
+        {
+            return value.ToString("0.####", CultureInfo.InvariantCulture);
         }
 
         private static void ReleaseLock()
@@ -71,3 +507,4 @@ namespace StellarEffects.UI
         }
     }
 }
+
