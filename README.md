@@ -7,7 +7,7 @@ A volumetric effects mod for anything in space, planets, stars, black holes, etc
 
 - Volumetric Blackhole Accretion Disks & Blackhole Jets
 - Volumetric Quasar Torus' & Quasar Jets
-- In-game config editor / creator
+- In-game config editor / creator (Ctrl + Alt + V to open)
 
 **Planned Features:**
 
