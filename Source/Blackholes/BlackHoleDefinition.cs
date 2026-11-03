@@ -18,7 +18,7 @@ namespace StellarEffects.Blackholes
         public float RotationSpeed = 1f;
         public float Spin = 1f;
         public float Turbulence = 0.5f;
-        public int Steps = 300;
+        public int Steps = 200;
         public Vector3 Normal = Vector3.up;
         public bool HideBody = true;
         public int Debug = 0;
