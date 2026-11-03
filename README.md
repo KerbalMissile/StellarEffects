@@ -17,6 +17,12 @@ A volumetric effects mod for anything in space, planets, stars, black holes, etc
 
 ---
 
+Existing Configs (For Other Planet Packs):
+
+[Kcalbeloh](https://spacedock.info/mod/4785/Kcalbeloh-StellarEffects)
+
+---
+
 **Pictures:**
 
 ![](Images/Blackhole_1.png)
