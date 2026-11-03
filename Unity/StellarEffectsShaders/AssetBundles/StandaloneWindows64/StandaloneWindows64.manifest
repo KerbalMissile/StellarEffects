@@ -1,0 +1,7 @@
+ManifestFileVersion: 0
+CRC: 2593226601
+AssetBundleManifest:
+  AssetBundleInfos:
+    Info_0:
+      Name: stellareffects
+      Dependencies: {}
