@@ -211,6 +211,7 @@ namespace StellarEffects.UI
             h.PhotonRing = Row("photonRing", h.PhotonRing, 0f, 5f);
             h.RotationSpeed = Row("rotationSpeed", h.RotationSpeed, -20f, 20f);
             h.Turbulence = Row("turbulence", h.Turbulence, 0f, 1f);
+            h.Twirl = Row("twirl", h.Twirl, 0f, 5f, 0f, 10f);
             h.Jets = GUILayout.Toggle(h.Jets, "jets");
             h.JetBrightness = Row("jetBrightness", h.JetBrightness, 0f, 50f);
             h.JetLength = Row("jetLength", h.JetLength, 5f, 5000f);
@@ -507,4 +508,3 @@ namespace StellarEffects.UI
         }
     }
 }
-

@@ -14,6 +14,7 @@ namespace StellarEffects.Blackholes
         private static readonly int CenterId = Shader.PropertyToID("_SE_Center");
         private static readonly int NormalId = Shader.PropertyToID("_SE_Normal");
         private static readonly int DiskId = Shader.PropertyToID("_SE_Disk");
+        private static readonly int DiskBId = Shader.PropertyToID("_SE_DiskB");
         private static readonly int LookId = Shader.PropertyToID("_SE_Look");
         private static readonly int ExtraId = Shader.PropertyToID("_SE_Extra");
         private static readonly int RayId = Shader.PropertyToID("_SE_Ray");
@@ -116,6 +117,7 @@ namespace StellarEffects.Blackholes
                 block.SetVector(CenterId, new Vector4(toCenter.x, toCenter.y, toCenter.z, horizonRadius));
                 block.SetVector(NormalId, new Vector4(normal.x, normal.y, normal.z, spinSign));
                 block.SetVector(DiskId, new Vector4(hole.DiskInner, hole.DiskOuter, hole.DiskThickness, hole.Turbulence));
+                block.SetVector(DiskBId, new Vector4(hole.Twirl, 0f, 0f, 0f));
                 block.SetVector(LookId, new Vector4(hole.Temperature, hole.Brightness, rotation, hole.Debug));
                 block.SetVector(ExtraId, new Vector4(hole.ColorSaturation, hole.Glow, hole.PhotonRing, steps));
                 block.SetVector(RayId, new Vector4(tanX, tanY, effectBounds, 1f));

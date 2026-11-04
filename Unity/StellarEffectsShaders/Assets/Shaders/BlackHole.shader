@@ -29,6 +29,7 @@ Shader "Hidden/StellarEffects/BlackHole"
             float4 _SE_Forward;
             float4 _SE_Jet;
             float4 _SE_JetB;
+            float4 _SE_DiskB;
 
             static const float DiskDensity = 45.0;
             static const float Absorb = 0.35;
@@ -219,7 +220,7 @@ Shader "Hidden/StellarEffects/BlackHole"
 
                 // Rotation direction. _SE_Look.z already carries the sign, so take its
                 // magnitude for the phase and apply the sign to the shear angle instead.
-                float spin = _SE_Normal.w < 0.0 ? -1.0 : 1.0;
+                float spin = (_SE_Normal.w < 0.0 ? -1.0 : 1.0) * _SE_DiskB.x;
                 float u = abs(_SE_Look.z) * (1.0 / ShearPeriod);
                 float f0 = frac(u);
                 float f1 = frac(u + 0.5);

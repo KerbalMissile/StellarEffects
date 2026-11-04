@@ -18,6 +18,7 @@ namespace StellarEffects.Blackholes
         public float RotationSpeed = 1f;
         public float Spin = 1f;
         public float Turbulence = 0.5f;
+        public float Twirl = 1f;
         public int Steps = 200;
         public Vector3 Normal = Vector3.up;
         public bool HideBody = true;
@@ -62,6 +63,7 @@ namespace StellarEffects.Blackholes
             node.TryGetValue("rotationSpeed", ref definition.RotationSpeed);
             node.TryGetValue("spin", ref definition.Spin);
             node.TryGetValue("turbulence", ref definition.Turbulence);
+            node.TryGetValue("twirl", ref definition.Twirl);
             node.TryGetValue("steps", ref definition.Steps);
             node.TryGetValue("normal", ref definition.Normal);
             node.TryGetValue("hideBody", ref definition.HideBody);
@@ -90,6 +92,7 @@ namespace StellarEffects.Blackholes
             DiskOuter = Mathf.Max(DiskOuter, DiskInner + 1f);
             DiskThickness = Mathf.Clamp(DiskThickness, 0.005f, 0.5f);
             Turbulence = Mathf.Clamp01(Turbulence);
+            Twirl = Mathf.Clamp(Twirl, 0f, 10f);
             Steps = Mathf.Clamp(Steps, 32, 600);
             JetBrightness = Mathf.Clamp(JetBrightness, 0f, 50f);
             JetLength = Mathf.Clamp(JetLength, 5f, 5000f);
@@ -130,6 +133,7 @@ namespace StellarEffects.Blackholes
             RotationSpeed = other.RotationSpeed;
             Spin = other.Spin;
             Turbulence = other.Turbulence;
+            Twirl = other.Twirl;
             Steps = other.Steps;
             Normal = other.Normal;
             HideBody = other.HideBody;
@@ -159,6 +163,7 @@ namespace StellarEffects.Blackholes
             node.SetValue("rotationSpeed", Format(RotationSpeed), true);
             node.SetValue("spin", Format(Spin), true);
             node.SetValue("turbulence", Format(Turbulence), true);
+            node.SetValue("twirl", Format(Twirl), true);
             node.SetValue("normal", Format(Normal.x) + ", " + Format(Normal.y) + ", " + Format(Normal.z), true);
             node.SetValue("steps", Steps.ToString(CultureInfo.InvariantCulture), true);
             node.SetValue("hideBody", HideBody ? "true" : "false", true);
