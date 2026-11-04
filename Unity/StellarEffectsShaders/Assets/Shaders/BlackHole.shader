@@ -215,7 +215,11 @@ Shader "Hidden/StellarEffects/BlackHole"
                 float kep = rcp(s * s * s);
 
                 float2 qp = float2(dot(q, t), dot(q, bt));
-                float u = _SE_Look.z * (1.0 / ShearPeriod);
+
+                // Rotation direction. _SE_Look.z already carries the sign, so take its
+                // magnitude for the phase and apply the sign to the shear angle instead.
+                float spin = _SE_Normal.w < 0.0 ? -1.0 : 1.0;
+                float u = abs(_SE_Look.z) * (1.0 / ShearPeriod);
                 float f0 = frac(u);
                 float f1 = frac(u + 0.5);
                 float w0 = 1.0 - abs(2.0 * f0 - 1.0);
@@ -226,14 +230,14 @@ Shader "Hidden/StellarEffects/BlackHole"
                 if (w0 > 0.01)
                 {
                     float sn0, cs0;
-                    sincos(f0 * ShearPeriod * kep, sn0, cs0);
+                    sincos(f0 * ShearPeriod * kep * spin, sn0, cs0);
                     float3 p0 = float3(qp.x * cs0 + qp.y * sn0, qp.y * cs0 - qp.x * sn0, zn * 0.5) * 0.9 + 9.1;
                     n0 = Fbm2(p0);
                 }
                 if (w1 > 0.01)
                 {
                     float sn1, cs1;
-                    sincos(f1 * ShearPeriod * kep, sn1, cs1);
+                    sincos(f1 * ShearPeriod * kep * spin, sn1, cs1);
                     float3 p1 = float3(qp.x * cs1 + qp.y * sn1, qp.y * cs1 - qp.x * sn1, zn * 0.5) * 0.9 + 9.1;
                     n1 = Fbm2(p1);
                 }
