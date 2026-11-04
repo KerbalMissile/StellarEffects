@@ -35,6 +35,7 @@ Shader "Hidden/StellarEffects/BlackHole"
             static const float Emission = 6.0;
             static const float ShearPeriod = 6.2831853;
             static const float CriticalB = 2.598076;
+            static const float RingOffset = 0.07;
             static const float JetBase = 3.5;
             static const float JetRamp = 1.2;
             static const float TwistScale = 40.0;
@@ -127,7 +128,7 @@ Shader "Hidden/StellarEffects/BlackHole"
                 float3 rgb = c / l * lt;
                 rgb /= max(max(rgb.r, max(rgb.g, rgb.b)), 1.0);
                 float white = smoothstep(0.55, 1.0, lt);
-                rgb = lerp(rgb, float3(lt, lt, lt) * float3(1.0, 0.95, 0.88), white * 0.65);
+                rgb = lerp(rgb, float3(lt, lt, lt) * float3(1.0, 0.95, 0.88), white * 0.18);
                 return rgb * 0.97;
             }
 
@@ -251,7 +252,7 @@ Shader "Hidden/StellarEffects/BlackHole"
                 float3 orbit = cross(n, q) * (_SE_Normal.w / r);
                 float beta = min(sqrt(0.5 / max(r - 1.0, 0.05)), 0.95);
                 float doppler = sqrt(1.0 - beta * beta) / (1.0 - beta * dot(orbit, -v * rsqrt(dot(v, v))));
-                float g = doppler * sqrt(saturate(1.0 - 1.0 / rSph));
+                float g = min(doppler, 1.8) * sqrt(saturate(1.0 - 1.0 / rSph));
 
                 float profile = sqrt(sqrt(max(7.0 * (1.0 - sqrt(inner / r)), 0.0))) * sqrt(kep);
                 float edgeGlow = 1.0 + 0.45 * exp(-(r - inner) / (0.28 * inner));
@@ -409,18 +410,17 @@ Shader "Hidden/StellarEffects/BlackHole"
                 }
 
                 float hb = sqrt(h2);
-                if (!captured)
+                if (!captured) color += glow;
+
+                if (!hitScene && b < 0.0)
                 {
-                    color += glow;
-                    if (!hitScene && b < 0.0)
-                    {
-                        float d = (hb - CriticalB) / 0.04;
-                        float d2 = (hb - CriticalB) / 0.011;
-                        float3 ringCol = Vivid(Blackbody(peak), _SE_Extra.x);
-                        float3 ringHot = lerp(ringCol, float3(1.0, 0.95, 0.88), 0.45);
-                        color += ringCol * (_SE_Extra.z * 6.5 * exp(-d * d));
-                        color += ringHot * (_SE_Extra.z * 5.0 * exp(-d2 * d2));
-                    }
+                    float ringB = CriticalB - RingOffset;
+                    float d = (hb - ringB) / 0.04;
+                    float d2 = (hb - ringB) / 0.011;
+                    float3 ringCol = Vivid(Blackbody(peak), _SE_Extra.x);
+                    float3 ringHot = lerp(ringCol, float3(1.0, 0.95, 0.88), 0.45);
+                    color += ringCol * (_SE_Extra.z * 6.5 * exp(-d * d));
+                    color += ringHot * (_SE_Extra.z * 5.0 * exp(-d2 * d2));
                 }
 
                 float3 rgb = SoftTonemap(color * _SE_Look.y);
