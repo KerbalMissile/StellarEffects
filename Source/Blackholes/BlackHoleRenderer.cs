@@ -8,6 +8,7 @@ namespace StellarEffects.Blackholes
     {
         private const float SpinRate = 0.75f;
         private const float MinDistance = 1.5f;
+        private const int MinSteps = 35;
 
         private static readonly int RectId = Shader.PropertyToID("_SE_Rect");
         private static readonly int CenterId = Shader.PropertyToID("_SE_Center");
@@ -97,6 +98,13 @@ namespace StellarEffects.Blackholes
 
                 if (!visible) continue;
 
+                // Step LOD: distance from the camera to the nearest point of the horizon (not the center), in horizon radii.
+                float surfaceDistance = Mathf.Max(toCenter.magnitude / horizonRadius - 1f, 0f);
+                float nearRadii = Mathf.Max(effectBounds * 100f, 2000f);
+                float steps = surfaceDistance <= nearRadii
+                    ? hole.Steps
+                    : Mathf.Clamp(Mathf.Round(hole.Steps * Mathf.Sqrt(nearRadii / surfaceDistance)), Mathf.Min(hole.Steps, MinSteps), hole.Steps);
+
                 Vector3 normal = ((Vector3)(Planetarium.Rotation * (Vector3d)hole.Normal)).normalized;
                 float spinSign = hole.Spin < 0f ? -1f : 1f;
                 float rotation = spinSign * (float)(hole.RotationSpeed * SpinRate * time % (2.0 * Mathf.PI));
@@ -109,7 +117,7 @@ namespace StellarEffects.Blackholes
                 block.SetVector(NormalId, new Vector4(normal.x, normal.y, normal.z, spinSign));
                 block.SetVector(DiskId, new Vector4(hole.DiskInner, hole.DiskOuter, hole.DiskThickness, hole.Turbulence));
                 block.SetVector(LookId, new Vector4(hole.Temperature, hole.Brightness, rotation, hole.Debug));
-                block.SetVector(ExtraId, new Vector4(hole.ColorSaturation, hole.Glow, hole.PhotonRing, hole.Steps));
+                block.SetVector(ExtraId, new Vector4(hole.ColorSaturation, hole.Glow, hole.PhotonRing, steps));
                 block.SetVector(RayId, new Vector4(tanX, tanY, effectBounds, 1f));
                 block.SetVector(RightId, view.right);
                 block.SetVector(UpId, view.up);

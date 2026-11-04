@@ -8,6 +8,7 @@ namespace StellarEffects.Quasars
     {
         private const float MinDistance = 1.5f;
         private const float JetBase = 1.5f;
+        private const int MinSteps = 35;
 
         private static readonly int RectId = Shader.PropertyToID("_SE_Rect");
         private static readonly int CenterId = Shader.PropertyToID("_SE_Center");
@@ -109,6 +110,13 @@ namespace StellarEffects.Quasars
 
                 if (!visible) continue;
 
+                // Step LOD: distance from the camera to the nearest point of the body (not the center), in radii.
+                float surfaceDistance = Mathf.Max(toCenter.magnitude / scaledRadius - 1f, 0f);
+                float nearRadii = Mathf.Max(effectBounds * 100f, 2000f);
+                float steps = surfaceDistance <= nearRadii
+                    ? quasar.Steps
+                    : Mathf.Clamp(Mathf.Round(quasar.Steps * Mathf.Sqrt(nearRadii / surfaceDistance)), Mathf.Min(quasar.Steps, MinSteps), quasar.Steps);
+
                 Vector3 normal = ((Vector3)(Planetarium.Rotation * (Vector3d)quasar.Normal)).normalized;
                 float spinSign = quasar.Spin < 0f ? -1f : 1f;
                 float rotation = torusDensity > 0f
@@ -126,7 +134,7 @@ namespace StellarEffects.Quasars
                 block.SetVector(UpId, view.up);
                 block.SetVector(ForwardId, view.forward);
                 block.SetVector(CoreId, new Vector4(coreBrightness, quasar.CoreSize, quasar.CoreTemperature, glare));
-                block.SetVector(CoreBId, new Vector4(quasar.GlareSize, quasar.ColorSaturation, quasar.Steps, (float)(time % 65536.0)));
+                block.SetVector(CoreBId, new Vector4(quasar.GlareSize, quasar.ColorSaturation, steps, (float)(time % 65536.0)));
                 block.SetVector(TorusId, new Vector4(quasar.TorusInner, quasar.TorusOuter, quasar.TorusThickness, torusDensity));
                 block.SetVector(TorusBId, new Vector4(quasar.TorusTemperature, torusGlow, quasar.TorusClumpiness, rotation));
                 block.SetVector(JetId, new Vector4(jetBrightness, quasar.JetLength, quasar.JetWidth, quasar.JetTemperature));
