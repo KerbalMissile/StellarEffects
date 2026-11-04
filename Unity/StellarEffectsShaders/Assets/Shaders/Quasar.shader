@@ -50,6 +50,10 @@ Shader "Hidden/StellarEffects/Quasar"
             static float torusCos;
             static float torusNoiseScale;
 
+            static float qualityLevel;
+            static int lightTaps;
+            static float marchScale;
+
             static const float2 Corners[6] = { float2(0, 0), float2(1, 0), float2(0, 1), float2(0, 1), float2(1, 0), float2(1, 1) };
 
             struct v2f
@@ -243,7 +247,7 @@ Shader "Hidden/StellarEffects/Quasar"
                 cp += warp * 1.2;
                 float big = Fbm3(cp);
                 float detail = Fbm2(cp * 2.6 + 5.5);
-                float lit = Fbm3(cp + float3(-0.3, 0.4, 0.25));
+                float lit = qualityLevel > 0.5 ? Fbm3(cp + float3(-0.3, 0.4, 0.25)) : big;
                 float shade = saturate(0.65 + 2.4 * (big - lit));
                 float edgeR = radial + (big - 0.5) * 1.5 + (detail - 0.5) * 0.6;
                 float outerR = 1.0 - 0.3 * tipAmt;
@@ -305,10 +309,6 @@ Shader "Hidden/StellarEffects/Quasar"
                 float dens = exp(-0.5 * e) * turb + 0.18 * exp(-0.5 * haze);
                 color += transmittance * coreColor * (_SE_Core.x * 0.8 / cs * dens * dt);
             }
-
-            #ifndef TORUS_LIGHT_TAPS
-            #define TORUS_LIGHT_TAPS 5
-            #endif
 
             static const float3 DustExt = float3(0.75, 1.0, 1.7);
 
@@ -380,11 +380,25 @@ Shader "Hidden/StellarEffects/Quasar"
                 float clumpMix = 1.0;
                 if (clumpOn)
                 {
-                    float3 pc2 = mul(NoiseRot, pc);
-                    float3 pc3 = mul(NoiseRot, pc2);
-                    float c = 0.55 * SoftTurb(Noise(pc * 0.07 + 31.0))
-                            + 0.30 * SoftTurb(Noise(pc2 * 0.17 + 7.0))
-                            + 0.15 * Noise(pc3 * 0.33 + 13.0);
+                    float c;
+                    if (qualityLevel > 1.5)
+                    {
+                        float3 pc2 = mul(NoiseRot, pc);
+                        float3 pc3 = mul(NoiseRot, pc2);
+                        c = 0.55 * SoftTurb(Noise(pc * 0.07 + 31.0))
+                          + 0.30 * SoftTurb(Noise(pc2 * 0.17 + 7.0))
+                          + 0.15 * Noise(pc3 * 0.33 + 13.0);
+                    }
+                    else if (qualityLevel > 0.5)
+                    {
+                        float3 pc2 = mul(NoiseRot, pc);
+                        c = 0.65 * SoftTurb(Noise(pc * 0.07 + 31.0))
+                          + 0.35 * SoftTurb(Noise(pc2 * 0.17 + 7.0));
+                    }
+                    else
+                    {
+                        c = SoftTurb(Noise(pc * 0.07 + 31.0));
+                    }
                     float clump = smoothstep(0.2, 0.8, c);
                     clumpMix = lerp(1.0, 0.5 + 1.1 * clump, saturate(_SE_TorusB.z));
                 }
@@ -395,9 +409,9 @@ Shader "Hidden/StellarEffects/Quasar"
                     float r = length(p);
                     float3 d = p / max(r, 1e-3);
                     float travel = max((rc - inner * 0.9) * r / max(rc, 1e-3), 0.0);
-                    float stepL = travel / TORUS_LIGHT_TAPS;
+                    float stepL = travel / lightTaps;
                     float tau = 0.0;
-                    [unroll] for (int k = 0; k < TORUS_LIGHT_TAPS; k++)
+                    [loop] for (int k = 0; k < lightTaps; k++)
                         tau += TorusLite(p - d * (stepL * (k + jit)), t, bt);
                     tau *= stepL * DustAbsorb;
 
@@ -464,6 +478,10 @@ Shader "Hidden/StellarEffects/Quasar"
                 float3 n = _SE_Normal.xyz;
                 float3 t = normalize(cross(n, abs(n.y) < 0.99 ? float3(0, 1, 0) : float3(1, 0, 0)));
                 float3 bt = cross(n, t);
+
+                qualityLevel = _SE_JetC.w;
+                lightTaps = qualityLevel > 1.5 ? 5 : (qualityLevel > 0.5 ? 3 : 2);
+                marchScale = qualityLevel > 1.5 ? 1.0 : (qualityLevel > 0.5 ? 1.35 : 1.9);
 
                 bool jetOn = _SE_Jet.x > 0.001;
                 bool torusOn = _SE_Torus.w > 0.001;
@@ -567,6 +585,7 @@ Shader "Hidden/StellarEffects/Quasar"
                         float axialGap = max(az - jetLength, 0.0);
                         dt = min(dt, max(0.6 * sqrt(radialGap * radialGap + axialGap * axialGap), min(0.25 * jetWidth, 0.12 * jetWidth + 0.3)));
                     }
+                    dt *= marchScale;
                     float segmentEnd = tEnd;
                     float segmentShare = 1.0;
                     if (inTorusRange)

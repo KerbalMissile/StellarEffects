@@ -1,5 +1,113 @@
 using System.Globalization;
+using System.IO;
 using UnityEngine;
+
+namespace StellarEffects
+{
+    internal enum QualityPreset
+    {
+        High,
+        Medium,
+        Low
+    }
+
+    internal static class StellarQuality
+    {
+        private const string NodeName = "STELLAREFFECTS_SETTINGS";
+        private const string ConfigPath = "GameData/StellarEffects/settings.cfg";
+        private const int MinSteps = 35;
+
+        private static QualityPreset current = Load();
+
+        public static QualityPreset Current
+        {
+            get { return current; }
+            set
+            {
+                if (current == value) return;
+                current = value;
+                Save();
+            }
+        }
+
+        public static float NoiseDetail
+        {
+            get
+            {
+                switch (current)
+                {
+                    case QualityPreset.Medium: return 1f;
+                    case QualityPreset.Low: return 0f;
+                    default: return 2f;
+                }
+            }
+        }
+
+        public static float MarchScale
+        {
+            get
+            {
+                switch (current)
+                {
+                    case QualityPreset.Medium: return 1.35f;
+                    case QualityPreset.Low: return 1.9f;
+                    default: return 1f;
+                }
+            }
+        }
+
+        public static float Steps(int configured, float surfaceDistance, float effectBounds)
+        {
+            float floor = Mathf.Min(configured, MinSteps);
+            float start = Mathf.Max(effectBounds * 100f, 2000f);
+
+            if (surfaceDistance <= start) return configured;
+
+            float steps = configured * Mathf.Sqrt(start / surfaceDistance);
+            return Mathf.Clamp(Mathf.Round(steps), floor, configured);
+        }
+
+        private static QualityPreset Load()
+        {
+            try
+            {
+                string path = Path.Combine(KSPUtil.ApplicationRootPath, ConfigPath);
+                if (!File.Exists(path)) return QualityPreset.High;
+
+                ConfigNode root = ConfigNode.Load(path);
+                ConfigNode node = root != null ? root.GetNode(NodeName) : null;
+                string value = node != null ? node.GetValue("quality") : null;
+
+                QualityPreset parsed;
+                if (value != null && System.Enum.TryParse(value, true, out parsed)) return parsed;
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError("[StellarEffects] Could not read quality setting: " + e);
+            }
+
+            return QualityPreset.High;
+        }
+
+        private static void Save()
+        {
+            try
+            {
+                string path = Path.Combine(KSPUtil.ApplicationRootPath, ConfigPath);
+                Directory.CreateDirectory(Path.GetDirectoryName(path));
+
+                var root = new ConfigNode();
+                ConfigNode node = root.AddNode(NodeName);
+                node.AddValue("quality", current.ToString());
+                root.Save(path);
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError("[StellarEffects] Could not save quality setting: " + e);
+            }
+        }
+    }
+}
 
 namespace StellarEffects.Blackholes
 {

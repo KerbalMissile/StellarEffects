@@ -82,6 +82,16 @@ Shader "Hidden/StellarEffects/BlackHole"
                 return (Noise(p) + 0.5 * Noise(p * 2.03 + 1.7) + 0.25 * Noise(p * 4.11 + 3.3)) * (1.0 / 1.75);
             }
 
+            float FbmQ(float3 p, float detail)
+            {
+                float n = Noise(p);
+                if (detail < 0.5) return n;
+                n += 0.5 * Noise(p * 2.03 + 1.7);
+                if (detail < 1.5) return n * (1.0 / 1.5);
+                n += 0.25 * Noise(p * 4.11 + 3.3);
+                return n * (1.0 / 1.75);
+            }
+
             float3 Blackbody(float kelvin)
             {
                 float t = clamp(kelvin, 1667.0, 25000.0);
@@ -174,10 +184,14 @@ Shader "Hidden/StellarEffects/BlackHole"
                 float3 sp = float3(qr.x * 2.6 + 3.1, qr.y * 2.6 + 7.7, az * 0.4 - time * beta * 1.1);
                 float streaks = 0.6 + 0.8 * (0.7 * Noise(sp) + 0.3 * Noise(sp * float3(2.3, 2.3, 1.9) + 5.3));
 
-                float braid = 0.5 + 0.5 * cos(3.0 * (atan2(qn.y, qn.x) + twistAngle));
-                streaks *= lerp(1.0, 0.55 + 1.3 * braid * braid, smoothstep(0.1, 0.9, radial));
+                float knots = 1.0;
+                if (_SE_DiskB.y > 0.5)
+                {
+                    float braid = 0.5 + 0.5 * cos(3.0 * (atan2(qn.y, qn.x) + twistAngle));
+                    streaks *= lerp(1.0, 0.55 + 1.3 * braid * braid, smoothstep(0.1, 0.9, radial));
 
-                float knots = 0.55 + 0.9 * Fbm2(float3(zn * 14.0 - time * beta * 0.8, 4.2, 7.9));
+                    knots = 0.55 + 0.9 * Fbm2(float3(zn * 14.0 - time * beta * 0.8, 4.2, 7.9));
+                }
 
                 float3 axis = z >= 0.0 ? n : -n;
                 float cosT = dot(axis, -v * rsqrt(dot(v, v)));
@@ -218,8 +232,6 @@ Shader "Hidden/StellarEffects/BlackHole"
 
                 float2 qp = float2(dot(q, t), dot(q, bt));
 
-                // Rotation direction. _SE_Look.z already carries the sign, so take its
-                // magnitude for the phase and apply the sign to the shear angle instead.
                 float spin = (_SE_Normal.w < 0.0 ? -1.0 : 1.0) * _SE_DiskB.x;
                 float u = abs(_SE_Look.z) * (1.0 / ShearPeriod);
                 float f0 = frac(u);
@@ -234,17 +246,18 @@ Shader "Hidden/StellarEffects/BlackHole"
                     float sn0, cs0;
                     sincos(f0 * ShearPeriod * kep * spin, sn0, cs0);
                     float3 p0 = float3(qp.x * cs0 + qp.y * sn0, qp.y * cs0 - qp.x * sn0, zn * 0.5) * 0.9 + 9.1;
-                    n0 = Fbm2(p0);
+                    n0 = FbmQ(p0, _SE_DiskB.y);
                 }
                 if (w1 > 0.01)
                 {
                     float sn1, cs1;
                     sincos(f1 * ShearPeriod * kep * spin, sn1, cs1);
                     float3 p1 = float3(qp.x * cs1 + qp.y * sn1, qp.y * cs1 - qp.x * sn1, zn * 0.5) * 0.9 + 9.1;
-                    n1 = Fbm2(p1);
+                    n1 = FbmQ(p1, _SE_DiskB.y);
                 }
                 float heat = saturate((n0 * w0 + n1 * w1 - 0.5) * rsqrt(w0 * w0 + w1 * w1) * 1.35 + 0.5);
-                float rings = 0.78 + 0.22 * Noise(float3(r * 7.0, 3.7, 1.3)) + 0.12 * Noise(float3(r * 23.0, 8.1, 2.9));
+                float ringFine = _SE_DiskB.y > 0.5 ? 0.12 * Noise(float3(r * 23.0, 8.1, 2.9)) : 0.06;
+                float rings = 0.78 + 0.22 * Noise(float3(r * 7.0, 3.7, 1.3)) + ringFine;
                 heat = saturate(heat * rings);
 
                 float knots = smoothstep(0.45, 0.75, heat) * _SE_Disk.w;
@@ -367,6 +380,7 @@ Shader "Hidden/StellarEffects/BlackHole"
                 float jitter = 0.2 + 0.8 * noiseDither;
                 int maxSteps = (int)_SE_Extra.w;
                 float depthT = -1.0;
+                float tExit = min(-b + s, sceneDistance);
 
                 [loop] for (int iter = 0; iter < maxSteps; iter++)
                 {
@@ -391,7 +405,10 @@ Shader "Hidden/StellarEffects/BlackHole"
                         dt = min(dt, max(0.6 * sqrt(dRad * dRad + dAx * dAx), 0.22 * jw));
                     }
                     dt = max(min(dt, 0.08 * r2 * invB), 0.004);
-                    if (nearPlane < 5.0 * hs * r && r < diskReach) dt = min(dt, 0.25);
+                    bool inDiskLayer = nearPlane < 5.0 * hs * r && r < diskReach;
+                    if (inDiskLayer) dt = min(dt, 0.25);
+                    else dt = max(dt, 0.7 * max(tExit - traveled, 0.0) / max((float)(maxSteps - iter), 1.0));
+                    dt *= _SE_DiskB.z;
                     if (iter == 0) dt *= jitter;
                     dt = min(dt, max(sceneDistance - traveled, 1e-5));
 

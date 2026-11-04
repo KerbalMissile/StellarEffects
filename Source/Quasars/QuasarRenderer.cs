@@ -8,7 +8,6 @@ namespace StellarEffects.Quasars
     {
         private const float MinDistance = 1.5f;
         private const float JetBase = 1.5f;
-        private const int MinSteps = 35;
 
         private static readonly int RectId = Shader.PropertyToID("_SE_Rect");
         private static readonly int CenterId = Shader.PropertyToID("_SE_Center");
@@ -110,12 +109,8 @@ namespace StellarEffects.Quasars
 
                 if (!visible) continue;
 
-                // Step LOD: distance from the camera to the nearest point of the body (not the center), in radii.
                 float surfaceDistance = Mathf.Max(toCenter.magnitude / scaledRadius - 1f, 0f);
-                float nearRadii = Mathf.Max(effectBounds * 100f, 2000f);
-                float steps = surfaceDistance <= nearRadii
-                    ? quasar.Steps
-                    : Mathf.Clamp(Mathf.Round(quasar.Steps * Mathf.Sqrt(nearRadii / surfaceDistance)), Mathf.Min(quasar.Steps, MinSteps), quasar.Steps);
+                float steps = StellarQuality.Steps(quasar.Steps, surfaceDistance, effectBounds);
 
                 Vector3 normal = ((Vector3)(Planetarium.Rotation * (Vector3d)quasar.Normal)).normalized;
                 float spinSign = quasar.Spin < 0f ? -1f : 1f;
@@ -139,7 +134,7 @@ namespace StellarEffects.Quasars
                 block.SetVector(TorusBId, new Vector4(quasar.TorusTemperature, torusGlow, quasar.TorusClumpiness, rotation));
                 block.SetVector(JetId, new Vector4(jetBrightness, quasar.JetLength, quasar.JetWidth, quasar.JetTemperature));
                 block.SetVector(JetBId, new Vector4(quasar.JetSpeed, 0f, quasar.JetSpread, quasar.JetTwist));
-                block.SetVector(JetCId, new Vector4(quasar.JetPlumeStart, quasar.JetPlumeWidth, quasar.JetPlumeBoost, 0f));
+                block.SetVector(JetCId, new Vector4(quasar.JetPlumeStart, quasar.JetPlumeWidth, quasar.JetPlumeBoost, StellarQuality.NoiseDetail));
 
                 commandBuffer.DrawProcedural(Matrix4x4.identity, material, 0, MeshTopology.Triangles, 6, 1, block);
                 drawn++;

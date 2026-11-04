@@ -20,7 +20,7 @@ namespace StellarEffects.UI
         private static string version = ReadVersion();
 
         private readonly Dictionary<string, string> buffers = new Dictionary<string, string>();
-        private Rect rect = new Rect(120, 120, 700, 580);
+        private Rect rect = new Rect(120, 120, 700, 610);
         private Vector2 listScroll;
         private Vector2 fieldScroll;
         private string newBody = "";
@@ -70,6 +70,15 @@ namespace StellarEffects.UI
             GUILayout.BeginHorizontal();
             if (GUILayout.Toggle(!quasarMode, "Black holes", GUI.skin.button) && quasarMode) SetMode(false);
             if (GUILayout.Toggle(quasarMode, "Quasars", GUI.skin.button) && !quasarMode) SetMode(true);
+            GUILayout.EndHorizontal();
+
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("Quality", GUILayout.Width(LabelWidth));
+            foreach (QualityPreset preset in new[] { QualityPreset.High, QualityPreset.Medium, QualityPreset.Low })
+            {
+                if (GUILayout.Toggle(StellarQuality.Current == preset, preset.ToString(), GUI.skin.button) && StellarQuality.Current != preset)
+                    StellarQuality.Current = preset;
+            }
             GUILayout.EndHorizontal();
 
             if (quasarMode)
