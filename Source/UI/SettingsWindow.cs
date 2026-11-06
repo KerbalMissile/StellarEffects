@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Reflection;
 using StellarEffects.Blackholes;
+using StellarEffects.Nebulae;
 using StellarEffects.Quasars;
 using UnityEngine;
 
@@ -25,10 +26,11 @@ namespace StellarEffects.UI
         private Vector2 fieldScroll;
         private string newBody = "";
         private string status = "";
+        private string rowPrefix = "";
         private int selected;
+        private int mode;
         private bool visible;
         private bool confirmRemove;
-        private bool quasarMode;
 
         void Awake()
         {
@@ -68,8 +70,9 @@ namespace StellarEffects.UI
         private void Draw(int id)
         {
             GUILayout.BeginHorizontal();
-            if (GUILayout.Toggle(!quasarMode, "Black holes", GUI.skin.button) && quasarMode) SetMode(false);
-            if (GUILayout.Toggle(quasarMode, "Quasars", GUI.skin.button) && !quasarMode) SetMode(true);
+            if (GUILayout.Toggle(mode == 0, "Black holes", GUI.skin.button) && mode != 0) SetMode(0);
+            if (GUILayout.Toggle(mode == 1, "Quasars", GUI.skin.button) && mode != 1) SetMode(1);
+            if (GUILayout.Toggle(mode == 2, "Nebulae", GUI.skin.button) && mode != 2) SetMode(2);
             GUILayout.EndHorizontal();
 
             GUILayout.BeginHorizontal();
@@ -81,9 +84,16 @@ namespace StellarEffects.UI
             }
             GUILayout.EndHorizontal();
 
-            if (quasarMode)
+            if (mode == 1)
             {
                 DrawQuasarTab();
+                GUI.DragWindow(new Rect(0, 0, 10000, 22));
+                return;
+            }
+
+            if (mode == 2)
+            {
+                DrawNebulaTab();
                 GUI.DragWindow(new Rect(0, 0, 10000, 22));
                 return;
             }
@@ -117,9 +127,9 @@ namespace StellarEffects.UI
             GUI.DragWindow(new Rect(0, 0, 10000, 22));
         }
 
-        private void SetMode(bool quasars)
+        private void SetMode(int newMode)
         {
-            quasarMode = quasars;
+            mode = newMode;
             selected = 0;
             confirmRemove = false;
             buffers.Clear();
@@ -152,6 +162,37 @@ namespace StellarEffects.UI
             if (GUILayout.Button("Save")) SaveQuasar(quasars[selected]);
             if (GUILayout.Button("Reset Config")) ResetQuasar(quasars[selected]);
             if (GUILayout.Button(confirmRemove ? "Click again to remove" : "Remove")) RemoveQuasar(quasars[selected]);
+            GUI.enabled = true;
+            GUILayout.EndHorizontal();
+
+            GUILayout.Label(status);
+        }
+
+        private void DrawNebulaTab()
+        {
+            NebulaManager manager = NebulaManager.Instance;
+            if (manager == null)
+            {
+                GUILayout.Label("Nebulae are not loaded.");
+                return;
+            }
+
+            if (!manager.ShaderReady)
+                GUILayout.Label("Nebula shader is missing from stellareffects.bundle. Nebulae will not render. See KSP.log.");
+
+            List<NebulaDefinition> nebulae = manager.Definitions;
+            selected = nebulae.Count == 0 ? -1 : Mathf.Clamp(selected, 0, nebulae.Count - 1);
+
+            GUILayout.BeginHorizontal();
+            DrawNebulaList(nebulae);
+            DrawNebulaEditor(nebulae);
+            GUILayout.EndHorizontal();
+
+            GUILayout.BeginHorizontal();
+            GUI.enabled = selected >= 0;
+            if (GUILayout.Button("Save")) SaveNebula(nebulae[selected]);
+            if (GUILayout.Button("Reset Config")) ResetNebula(nebulae[selected]);
+            if (GUILayout.Button(confirmRemove ? "Click again to remove" : "Remove")) RemoveNebula(nebulae[selected]);
             GUI.enabled = true;
             GUILayout.EndHorizontal();
 
@@ -192,6 +233,25 @@ namespace StellarEffects.UI
             GUILayout.Label("New body");
             newBody = GUILayout.TextField(newBody);
             if (GUILayout.Button("Add")) AddQuasar();
+
+            GUILayout.EndVertical();
+        }
+
+        private void DrawNebulaList(List<NebulaDefinition> nebulae)
+        {
+            GUILayout.BeginVertical(GUILayout.Width(ListWidth));
+
+            listScroll = GUILayout.BeginScrollView(listScroll, GUILayout.Height(320));
+            for (int i = 0; i < nebulae.Count; i++)
+            {
+                bool on = GUILayout.Toggle(selected == i, nebulae[i].Body, GUI.skin.button);
+                if (on && selected != i) Select(i);
+            }
+            GUILayout.EndScrollView();
+
+            GUILayout.Label("New body");
+            newBody = GUILayout.TextField(newBody);
+            if (GUILayout.Button("Add")) AddNebula();
 
             GUILayout.EndVertical();
         }
@@ -301,6 +361,81 @@ namespace StellarEffects.UI
             GUILayout.EndScrollView();
         }
 
+        private void DrawNebulaEditor(List<NebulaDefinition> nebulae)
+        {
+            fieldScroll = GUILayout.BeginScrollView(fieldScroll, GUILayout.Height(400));
+
+            if (selected < 0)
+            {
+                GUILayout.Label("No nebulae defined. Add a body on the left.");
+                GUILayout.EndScrollView();
+                return;
+            }
+
+            NebulaDefinition n = nebulae[selected];
+
+            n.Radius = Row("radius", n.Radius, 0f, 1e9f, false);
+            n.Size = Row("size", n.Size, 1f, 1e5f, NebulaLimits.SizeMin, NebulaLimits.SizeMax, false);
+            n.Brightness = Row("brightness", n.Brightness, 0f, 10f, 0f, NebulaLimits.BrightnessMax);
+            n.ColorSaturation = Row("colorSaturation", n.ColorSaturation, 0f, 4f, 0f, NebulaLimits.ColorSaturationMax);
+            n.StarTemperature = Row("starTemperature", n.StarTemperature, 2000f, 40000f, 1000f, NebulaLimits.StarTemperatureMax);
+            n.StarBrightness = Row("starBrightness", n.StarBrightness, 0f, 20f, 0f, NebulaLimits.StarBrightnessMax);
+            n.StarFalloff = Row("starFalloff", n.StarFalloff, 0.02f, 2f, NebulaLimits.StarFalloffMin, NebulaLimits.StarFalloffMax);
+            n.RotationSpeed = Row("rotationSpeed", n.RotationSpeed, -20f, 20f, -NebulaLimits.RotationSpeedMax, NebulaLimits.RotationSpeedMax);
+            n.Steps = Mathf.RoundToInt(Row("steps", n.Steps, 32f, 600f, 32f, NebulaLimits.StepsMax));
+
+            Vector3 normal = n.Normal;
+            normal.x = Row("normal x", normal.x, -20f, 20f, -NebulaLimits.NormalMax, NebulaLimits.NormalMax);
+            normal.y = Row("normal y", normal.y, -20f, 20f, -NebulaLimits.NormalMax, NebulaLimits.NormalMax);
+            normal.z = Row("normal z", normal.z, -20f, 20f, -NebulaLimits.NormalMax, NebulaLimits.NormalMax);
+            n.Normal = normal;
+
+            n.HideBody = GUILayout.Toggle(n.HideBody, "hideBody");
+            n.Spin = GUILayout.Toggle(n.Spin < 0f, "reverse spin") ? -1f : 1f;
+
+            GUILayout.Label("shape");
+            n.Shape = GUILayout.Toolbar(n.Shape, new[] { "Sphere", "Ring", "Bipolar", "Spiral", "Lumpy" });
+            n.ShapeRatio = Row("shapeRatio", n.ShapeRatio, 0.05f, 0.95f, NebulaLimits.ShapeRatioMin, NebulaLimits.ShapeRatioMax);
+            n.ShapeArms = Row("shapeArms", n.ShapeArms, 1f, 8f, 1f, NebulaLimits.ShapeArmsMax);
+            n.Irregularity = Row("irregularity", n.Irregularity, 0f, 1.5f, 0f, NebulaLimits.IrregularityMax);
+            n.Variation = Row("variation", n.Variation, 0f, 1f);
+            n.Seed = Row("seed", n.Seed, 0f, 100f, -NebulaLimits.SeedMax, NebulaLimits.SeedMax);
+
+            n.Warp = Row("warp", n.Warp, 0f, 2f, 0f, NebulaLimits.GasWarpMax);
+            n.Extent = Row("extent", n.Extent, 0.05f, 1f, NebulaLimits.GasExtentMin, NebulaLimits.GasExtentMax);
+            n.Flatten = Row("flatten", n.Flatten, 0.05f, 1f, NebulaLimits.GasFlattenMin, 1f);
+            n.Hollow = Row("hollow", n.Hollow, 0f, 0.9f, 0f, NebulaLimits.GasHollowMax);
+
+            n.GasCount = Mathf.RoundToInt(Row("gasTypes", n.GasCount, 1f, NebulaLimits.GasMax, 1f, NebulaLimits.GasMax));
+
+            for (int i = 0; i < n.GasCount; i++)
+            {
+                NebulaGas gas = n.Gases[i];
+                rowPrefix = "gas_" + (i + 1) + ".";
+
+                GUILayout.Label("gas_" + (i + 1));
+
+                gas.ColorR = Row("colorR", gas.ColorR, 0f, 1f, 0f, NebulaLimits.GasColorMax);
+                gas.ColorG = Row("colorG", gas.ColorG, 0f, 1f, 0f, NebulaLimits.GasColorMax);
+                gas.ColorB = Row("colorB", gas.ColorB, 0f, 1f, 0f, NebulaLimits.GasColorMax);
+                gas.Density = Row("density", gas.Density, 0f, 3f, 0f, NebulaLimits.GasDensityMax);
+                gas.Emission = Row("emission", gas.Emission, 0f, 10f, 0f, NebulaLimits.GasEmissionMax);
+                gas.Absorption = Row("absorption", gas.Absorption, 0f, 5f, 0f, NebulaLimits.GasAbsorptionMax);
+                gas.Scale = Row("scale", gas.Scale, 0.5f, 30f, NebulaLimits.GasScaleMin, NebulaLimits.GasScaleMax);
+                gas.Coverage = Row("coverage", gas.Coverage, 0f, 0.95f);
+                gas.Contrast = Row("contrast", gas.Contrast, 0f, 1f);
+                gas.Phase = Row("phase", gas.Phase, -0.5f, 0.9f, -NebulaLimits.GasPhaseMax, NebulaLimits.GasPhaseMax);
+                gas.Shadow = Row("shadow", gas.Shadow, 0f, 3f, 0f, NebulaLimits.GasShadowMax);
+                gas.Seed = Row("seed", gas.Seed, 0f, 100f, -NebulaLimits.GasSeedMax, NebulaLimits.GasSeedMax);
+
+                rowPrefix = "";
+            }
+
+            n.Clamp();
+
+            GUILayout.EndScrollView();
+        }
+
         private float Row(string label, float value, float min, float max, bool slider = true)
         {
             return Row(label, value, min, max, min, max, slider);
@@ -308,6 +443,8 @@ namespace StellarEffects.UI
 
         private float Row(string label, float value, float min, float max, float hardMin, float hardMax, bool slider = true)
         {
+            string key = rowPrefix + label;
+
             GUILayout.BeginHorizontal();
             GUILayout.Label(label, GUILayout.Width(LabelWidth));
 
@@ -318,20 +455,20 @@ namespace StellarEffects.UI
                 if (!Mathf.Approximately(moved, shown))
                 {
                     value = moved;
-                    buffers[label] = Format(value);
+                    buffers[key] = Format(value);
                 }
             }
 
-            bool focused = GUI.GetNameOfFocusedControl() == label;
+            bool focused = GUI.GetNameOfFocusedControl() == key;
             string text;
-            if (!focused || !buffers.TryGetValue(label, out text))
+            if (!focused || !buffers.TryGetValue(key, out text))
                 text = Format(value);
 
-            GUI.SetNextControlName(label);
+            GUI.SetNextControlName(key);
             string typed = GUILayout.TextField(text, GUILayout.Width(BoxWidth));
             if (typed != text)
             {
-                buffers[label] = typed;
+                buffers[key] = typed;
                 float parsed;
                 if (float.TryParse(typed, NumberStyles.Float, CultureInfo.InvariantCulture, out parsed))
                     value = Mathf.Clamp(parsed, hardMin, hardMax);
@@ -397,6 +534,30 @@ namespace StellarEffects.UI
             status = "Added " + name + ". Save to keep it.";
         }
 
+        private void AddNebula()
+        {
+            NebulaManager manager = NebulaManager.Instance;
+            string name = newBody.Trim();
+            if (manager == null || name.Length == 0) return;
+
+            if (manager.Definitions.Exists(h => h.Body == name))
+            {
+                status = name + " already has a nebula.";
+                return;
+            }
+
+            if (FlightGlobals.Bodies == null || !FlightGlobals.Bodies.Exists(b => b.bodyName == name))
+            {
+                status = "No body named " + name + ".";
+                return;
+            }
+
+            manager.Add(name);
+            Select(manager.Definitions.Count - 1);
+            newBody = "";
+            status = "Added " + name + ". Save to keep it.";
+        }
+
         private void Remove(BlackHoleDefinition hole)
         {
             if (!confirmRemove)
@@ -447,6 +608,31 @@ namespace StellarEffects.UI
             }
         }
 
+        private void RemoveNebula(NebulaDefinition nebula)
+        {
+            if (!confirmRemove)
+            {
+                confirmRemove = true;
+                status = "Click again to remove " + nebula.Body + " and delete its config entry.";
+                return;
+            }
+
+            confirmRemove = false;
+
+            try
+            {
+                NebulaConfigWriter.Delete(nebula);
+                NebulaManager.Instance.Remove(nebula);
+                buffers.Clear();
+                status = "Removed " + nebula.Body + ".";
+            }
+            catch (System.Exception e)
+            {
+                status = "Remove failed: " + e.Message;
+                Debug.LogError("[StellarEffects] Could not remove nebula " + nebula.Body + ": " + e);
+            }
+        }
+
         private void Save(BlackHoleDefinition hole)
         {
             confirmRemove = false;
@@ -479,6 +665,22 @@ namespace StellarEffects.UI
             }
         }
 
+        private void SaveNebula(NebulaDefinition nebula)
+        {
+            confirmRemove = false;
+
+            try
+            {
+                string path = NebulaConfigWriter.Save(nebula);
+                status = "Saved " + path.Replace(KSPUtil.ApplicationRootPath, "");
+            }
+            catch (System.Exception e)
+            {
+                status = "Save failed: " + e.Message;
+                Debug.LogError("[StellarEffects] Could not save nebula " + nebula.Body + ": " + e);
+            }
+        }
+
         private void Reset(BlackHoleDefinition hole)
         {
             confirmRemove = false;
@@ -493,6 +695,14 @@ namespace StellarEffects.UI
             quasar.Revert();
             buffers.Clear();
             status = "Reset " + quasar.Body + " to its saved config.";
+        }
+
+        private void ResetNebula(NebulaDefinition nebula)
+        {
+            confirmRemove = false;
+            nebula.Revert();
+            buffers.Clear();
+            status = "Reset " + nebula.Body + " to its saved config.";
         }
 
         private static string Format(float value)

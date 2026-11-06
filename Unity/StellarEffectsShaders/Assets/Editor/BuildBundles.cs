@@ -19,7 +19,8 @@ namespace StellarEffects.Editor
                 assetNames = new[]
                 {
                     "Assets/Shaders/BlackHole.shader",
-                    "Assets/Shaders/Quasar.shader"
+                    "Assets/Shaders/Quasar.shader",
+                    "Assets/Shaders/Nebula.shader"
                 }
             };
 
