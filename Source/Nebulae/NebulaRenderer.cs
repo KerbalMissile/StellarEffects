@@ -18,6 +18,7 @@ namespace StellarEffects.Nebulae
         private static readonly int CenterId = Shader.PropertyToID("_SE_Center");
         private static readonly int NormalId = Shader.PropertyToID("_SE_Normal");
         private static readonly int RayId = Shader.PropertyToID("_SE_Ray");
+        private static readonly int OccId = Shader.PropertyToID("_SE_Occ");
         private static readonly int RightId = Shader.PropertyToID("_SE_Right");
         private static readonly int UpId = Shader.PropertyToID("_SE_Up");
         private static readonly int ForwardId = Shader.PropertyToID("_SE_Forward");
@@ -141,6 +142,14 @@ namespace StellarEffects.Nebulae
             double time = Time.unscaledTime;
             float maxCoverage = 0f;
 
+            CelestialBody mainBody = FlightGlobals.currentMainBody;
+            Vector4 mainOccluder = Vector4.zero;
+            if (mainBody != null && mainBody.scaledBody != null)
+            {
+                Vector3 toMain = mainBody.scaledBody.transform.position - view.position;
+                mainOccluder = new Vector4(toMain.x, toMain.y, toMain.z, (float)mainBody.Radius * inverseScale);
+            }
+
             visibleList.Clear();
 
             foreach (NebulaDefinition nebula in Definitions)
@@ -229,6 +238,7 @@ namespace StellarEffects.Nebulae
                 block.SetVector(CenterId, new Vector4(vis.ToCenter.x, vis.ToCenter.y, vis.ToCenter.z, vis.ScaledRadius));
                 block.SetVector(NormalId, new Vector4(normal.x, normal.y, normal.z, spinSign));
                 block.SetVector(RayId, new Vector4(tanX, tanY, effectBounds, 1f));
+                block.SetVector(OccId, nebula.Target == mainBody ? Vector4.zero : mainOccluder);
                 block.SetVector(RightId, view.right);
                 block.SetVector(UpId, view.up);
                 block.SetVector(ForwardId, view.forward);

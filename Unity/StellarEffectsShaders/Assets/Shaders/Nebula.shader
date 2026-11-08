@@ -27,6 +27,7 @@ Shader "Hidden/StellarEffects/Nebula"
         float4 _SE_Shape;
         float4 _SE_Bake;
         float4 _SE_Low;
+        float4 _SE_Occ;
         float4 _SE_GasA[5];
         float4 _SE_GasB[5];
         float4 _SE_GasC[5];
@@ -628,6 +629,16 @@ Shader "Hidden/StellarEffects/Nebula"
 
             bool occluder = sceneEye < _ProjectionParams.z * 0.98;
             float sceneDistance = occluder ? sceneEye / max(viewCos, 1e-4) / rs : 1e30;
+            float bodyRadius = _SE_Occ.w / rs;
+            if (bodyRadius > 0.0)
+            {
+                float3 bodyCenter = _SE_Occ.xyz / rs;
+                float bodyB = dot(v, bodyCenter);
+                float bodyC = dot(bodyCenter, bodyCenter) - bodyRadius * bodyRadius;
+                float bodyD = bodyB * bodyB - bodyC;
+                if (bodyC > 0.0 && bodyB > 0.0 && bodyD > 0.0)
+                    sceneDistance = min(sceneDistance, bodyB - sqrt(bodyD));
+            }
             if (sceneDistance < tEnter) return EmptyLow(sceneEye);
 
             bool hitScene = sceneDistance < tEnd;
