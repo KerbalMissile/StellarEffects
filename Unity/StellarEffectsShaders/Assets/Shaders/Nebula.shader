@@ -713,6 +713,7 @@ Shader "Hidden/StellarEffects/Nebula"
 
             float4 col = acc / wsum;
             if (col.a <= 1e-5 && dot(col.rgb, float3(1, 1, 1)) <= 1e-5) discard;
+            if (sceneEye < _ProjectionParams.z * 0.98 && LinearEyeDepth(bestDepth) > sceneEye * 1.002) discard;
 
             float3 rgb = Tonemap(Vivid(col.rgb * _SE_Look.x, _SE_Look.y));
 
@@ -777,7 +778,7 @@ Shader "Hidden/StellarEffects/Nebula"
 
         Pass
         {
-            ZTest LEqual
+            ZTest Always
             Blend One OneMinusSrcAlpha
 
             CGPROGRAM
