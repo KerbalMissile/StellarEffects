@@ -333,6 +333,7 @@ namespace StellarEffects.UI
             q.TorusTemperature = Row("torusTemperature", q.TorusTemperature, 800f, 6000f, 800f, QuasarLimits.TorusTemperatureMax);
             q.TorusGlow = Row("torusGlow", q.TorusGlow, 0f, 10f, 0f, QuasarLimits.TorusGlowMax);
             q.TorusClumpiness = Row("torusClumpiness", q.TorusClumpiness, 0f, 1f);
+            q.TorusTurbulence = Row("torusTurbulence", q.TorusTurbulence, 0f, 10f, 0f, QuasarLimits.TorusTurbulenceMax);
             q.RotationSpeed = Row("rotationSpeed", q.RotationSpeed, -20f, 20f, -QuasarLimits.RotationSpeedMax, QuasarLimits.RotationSpeedMax);
             q.Jets = GUILayout.Toggle(q.Jets, "jets");
             q.JetBrightness = Row("jetBrightness", q.JetBrightness, 0f, 50f, 0f, QuasarLimits.JetBrightnessMax);

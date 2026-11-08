@@ -19,6 +19,7 @@ namespace StellarEffects.Quasars
         public const float TorusDensityMax = 100f;
         public const float TorusTemperatureMax = 50000f;
         public const float TorusGlowMax = 1000f;
+        public const float TorusTurbulenceMax = 50f;
         public const float RotationSpeedMax = 1000f;
         public const int StepsMax = 2000;
         public const float JetBrightnessMax = 5000f;
@@ -54,6 +55,7 @@ namespace StellarEffects.Quasars
         public float TorusTemperature = 3000f;
         public float TorusGlow = 1.5f;
         public float TorusClumpiness = 1f;
+        public float TorusTurbulence = 1f;
         public float RotationSpeed = 1f;
         public float Spin = 1f;
         public int Steps = 300;
@@ -104,6 +106,7 @@ namespace StellarEffects.Quasars
             node.TryGetValue("torusTemperature", ref definition.TorusTemperature);
             node.TryGetValue("torusGlow", ref definition.TorusGlow);
             node.TryGetValue("torusClumpiness", ref definition.TorusClumpiness);
+            node.TryGetValue("torusTurbulence", ref definition.TorusTurbulence);
             node.TryGetValue("rotationSpeed", ref definition.RotationSpeed);
             node.TryGetValue("spin", ref definition.Spin);
             node.TryGetValue("steps", ref definition.Steps);
@@ -144,6 +147,7 @@ namespace StellarEffects.Quasars
             TorusTemperature = Mathf.Clamp(TorusTemperature, 800f, QuasarLimits.TorusTemperatureMax);
             TorusGlow = Mathf.Clamp(TorusGlow, 0f, QuasarLimits.TorusGlowMax);
             TorusClumpiness = Mathf.Clamp01(TorusClumpiness);
+            TorusTurbulence = Mathf.Clamp(TorusTurbulence, 0f, QuasarLimits.TorusTurbulenceMax);
             RotationSpeed = Mathf.Clamp(RotationSpeed, -QuasarLimits.RotationSpeedMax, QuasarLimits.RotationSpeedMax);
             Steps = Mathf.Clamp(Steps, 32, QuasarLimits.StepsMax);
             JetBrightness = Mathf.Clamp(JetBrightness, 0f, QuasarLimits.JetBrightnessMax);
@@ -190,6 +194,7 @@ namespace StellarEffects.Quasars
             TorusTemperature = other.TorusTemperature;
             TorusGlow = other.TorusGlow;
             TorusClumpiness = other.TorusClumpiness;
+            TorusTurbulence = other.TorusTurbulence;
             RotationSpeed = other.RotationSpeed;
             Spin = other.Spin;
             Steps = other.Steps;
@@ -225,6 +230,7 @@ namespace StellarEffects.Quasars
             node.SetValue("torusTemperature", Format(TorusTemperature), true);
             node.SetValue("torusGlow", Format(TorusGlow), true);
             node.SetValue("torusClumpiness", Format(TorusClumpiness), true);
+            node.SetValue("torusTurbulence", Format(TorusTurbulence), true);
             node.SetValue("rotationSpeed", Format(RotationSpeed), true);
             node.SetValue("spin", Format(Spin), true);
             node.SetValue("normal", Format(Normal.x) + ", " + Format(Normal.y) + ", " + Format(Normal.z), true);
@@ -249,4 +255,3 @@ namespace StellarEffects.Quasars
         }
     }
 }
-

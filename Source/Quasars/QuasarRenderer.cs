@@ -20,6 +20,7 @@ namespace StellarEffects.Quasars
         private static readonly int CoreBId = Shader.PropertyToID("_SE_CoreB");
         private static readonly int TorusId = Shader.PropertyToID("_SE_Torus");
         private static readonly int TorusBId = Shader.PropertyToID("_SE_TorusB");
+        private static readonly int TorusCId = Shader.PropertyToID("_SE_TorusC");
         private static readonly int JetId = Shader.PropertyToID("_SE_Jet");
         private static readonly int JetBId = Shader.PropertyToID("_SE_JetB");
         private static readonly int JetCId = Shader.PropertyToID("_SE_JetC");
@@ -132,6 +133,7 @@ namespace StellarEffects.Quasars
                 block.SetVector(CoreBId, new Vector4(quasar.GlareSize, quasar.ColorSaturation, steps, (float)(time % 65536.0)));
                 block.SetVector(TorusId, new Vector4(quasar.TorusInner, quasar.TorusOuter, quasar.TorusThickness, torusDensity));
                 block.SetVector(TorusBId, new Vector4(quasar.TorusTemperature, torusGlow, quasar.TorusClumpiness, rotation));
+                block.SetVector(TorusCId, new Vector4(quasar.TorusTurbulence, 0f, 0f, 0f));
                 block.SetVector(JetId, new Vector4(jetBrightness, quasar.JetLength, quasar.JetWidth, quasar.JetTemperature));
                 block.SetVector(JetBId, new Vector4(quasar.JetSpeed, 0f, quasar.JetSpread, quasar.JetTwist));
                 block.SetVector(JetCId, new Vector4(quasar.JetPlumeStart, quasar.JetPlumeWidth, quasar.JetPlumeBoost, StellarQuality.NoiseDetail));

@@ -28,6 +28,7 @@ Shader "Hidden/StellarEffects/Quasar"
             float4 _SE_CoreB;
             float4 _SE_Torus;
             float4 _SE_TorusB;
+            float4 _SE_TorusC;
             float4 _SE_Jet;
             float4 _SE_JetB;
             float4 _SE_JetC;
@@ -49,6 +50,7 @@ Shader "Hidden/StellarEffects/Quasar"
             static float torusSin;
             static float torusCos;
             static float torusNoiseScale;
+            static float torusTurbulence;
 
             static float qualityLevel;
             static int lightTaps;
@@ -375,7 +377,15 @@ Shader "Hidden/StellarEffects/Quasar"
 
                 float3 pc = TorusPc(p, t, bt);
                 float2 warp = float2(Noise(pc * 0.05 + 3.1), Noise(pc * 0.05 + 9.7)) - 0.5;
-                pc.xy += warp * 6.0;
+                float excess = max(torusTurbulence - 1.0, 0.0);
+                float2 swirl = warp * 6.0 * torusTurbulence * (1.0 + excess);
+                if (excess > 0.0)
+                {
+                    float2 fine = float2(Noise(pc * 0.13 + 5.3), Noise(pc * 0.13 + 1.9)) - 0.5;
+                    swirl += fine * 10.0 * excess;
+                    pc.z += (Noise(pc * 0.06 + 7.7) - 0.5) * 8.0 * excess;
+                }
+                pc.xy += swirl;
                 float macro = Noise(pc * 0.025 + 5.0);
                 float clumpMix = 1.0;
                 if (clumpOn)
@@ -403,6 +413,8 @@ Shader "Hidden/StellarEffects/Quasar"
                     clumpMix = lerp(1.0, 0.5 + 1.1 * clump, saturate(_SE_TorusB.z));
                 }
                 float density = dens * clumpMix * (0.7 + 0.6 * macro) * _SE_Torus.w * 1.8;
+                if (excess > 0.0)
+                    density *= lerp(1.0, 0.3 + 1.4 * Noise(pc * 0.21 + 21.0), saturate(0.5 * excess));
 
                 if (torusGlowOn)
                 {
@@ -515,6 +527,7 @@ Shader "Hidden/StellarEffects/Quasar"
                 meanderScale = max(6.0 * tipWidth, 1.0);
                 sincos(_SE_TorusB.w, torusSin, torusCos);
                 torusNoiseScale = 10.0 / max(_SE_Torus.x, 1e-3);
+                torusTurbulence = _SE_TorusC.x;
 
                 float3 color = 0;
                 float3 jet = 0;
