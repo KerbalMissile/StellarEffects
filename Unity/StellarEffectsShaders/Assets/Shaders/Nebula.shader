@@ -50,6 +50,7 @@ Shader "Hidden/StellarEffects/Nebula"
         static float nebBound;
         static float2 nebSpinCS;
         static float nebExtent;
+        static float nebReach;
         static float nebInvFlatten;
         static float nebHollow;
         static float nebEdge;
@@ -292,10 +293,10 @@ Shader "Hidden/StellarEffects/Nebula"
 
         float EnvelopeValue(float d)
         {
-            if (d >= nebExtent) return 0.0;
+            if (d >= nebReach) return 0.0;
 
-            float env = 1.0 - smoothstep(nebExtent * 0.3, nebExtent, d);
-            env *= 1.0 - nebEdge * smoothstep(nebExtent * 0.6, nebExtent, d);
+            float env = 1.0 - smoothstep(nebExtent * 0.3, nebReach, d);
+            env *= 1.0 - nebEdge * smoothstep(nebExtent * 0.6, nebReach, d);
             if (nebHollow > 0.001) env *= smoothstep(nebHollow * nebExtent * 0.4, nebHollow * nebExtent, d);
             return env;
         }
@@ -314,7 +315,7 @@ Shader "Hidden/StellarEffects/Nebula"
 
             float d = ShapeBaseDist(u);
             irrMul = 1.0;
-            if (d < nebExtent) irrMul = ShapeIrregularity(u);
+            if (d < nebReach) irrMul = ShapeIrregularity(u);
 
             dist = d * irrMul;
             return EnvelopeValue(dist);
@@ -387,6 +388,7 @@ Shader "Hidden/StellarEffects/Nebula"
         {
             nebCount = clamp((int)_SE_Quality.y, 1, 5);
             nebExtent = _SE_GasC[0].z;
+            nebReach = nebExtent * (1.0 + max(_SE_Edge.y, 0.0));
             nebInvFlatten = 1.0 / max(_SE_GasC[0].w, 0.02);
             nebHollow = _SE_GasD[0].w;
             nebEdge = _SE_Edge.x;
@@ -402,7 +404,7 @@ Shader "Hidden/StellarEffects/Nebula"
             marchScale = qualityLevel > 1.5 ? 1.0 : (qualityLevel > 0.5 ? 1.5 : 2.2);
 
             bool ringlike = nebShape > 0.5 && nebShape < 2.5;
-            nebBakeB = ringlike ? nebRatio + nebExtent * max(1.0 - nebRatio, 0.05) * 1.4143 : nebExtent;
+            nebBakeB = ringlike ? nebRatio + nebReach * max(1.0 - nebRatio, 0.05) * 1.4143 : nebReach;
             nebTexel = 2.0 * nebBakeB / BakeSize;
 
             nebStep = 0.0;
@@ -457,8 +459,8 @@ Shader "Hidden/StellarEffects/Nebula"
         {
             float d0 = ShapeBaseDist(u);
             float irrMul = 1.0;
-            if (d0 < nebExtent) irrMul = ShapeIrregularity(u);
-            if (d0 * irrMul >= nebExtent) return 0.0;
+            if (d0 < nebReach) irrMul = ShapeIrregularity(u);
+            if (d0 * irrMul >= nebReach) return 0.0;
 
             float vars[5];
             [loop] for (int g = 0; g < nebCount; g++)
@@ -506,7 +508,7 @@ Shader "Hidden/StellarEffects/Nebula"
             if (env <= 0.0005)
             {
                 float inner = nebHollow * nebExtent * 0.4;
-                float gap = dist >= nebExtent ? dist - nebExtent : inner - dist;
+                float gap = dist >= nebReach ? dist - nebReach : inner - dist;
                 nebSkip = clamp(0.25 * gap / max(nebStep, 1e-6), 1.0, 3.0);
                 return;
             }
@@ -614,17 +616,17 @@ Shader "Hidden/StellarEffects/Nebula"
 
             float flatten = 1.0 / nebInvFlatten;
             float tube = max(1.0 - nebRatio, 0.05);
-            float rc = nebExtent;
-            float hh = nebExtent * flatten;
+            float rc = nebReach;
+            float hh = nebReach * flatten;
             if (nebShape > 0.5 && nebShape < 1.5)
             {
-                rc = nebRatio + nebExtent * tube;
-                hh = nebExtent * tube * flatten;
+                rc = nebRatio + nebReach * tube;
+                hh = nebReach * tube * flatten;
             }
             else if (nebShape > 1.5 && nebShape < 2.5)
             {
-                rc = nebExtent * tube;
-                hh = (nebRatio + nebExtent * tube) * flatten;
+                rc = nebReach * tube;
+                hh = (nebRatio + nebReach * tube) * flatten;
             }
 
             float3 ro = float3(dot(x0, nebT), dot(x0, nebB), dot(x0, nebN));
