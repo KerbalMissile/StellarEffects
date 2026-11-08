@@ -26,6 +26,7 @@ namespace StellarEffects.Nebulae
         private static readonly int StarId = Shader.PropertyToID("_SE_Star");
         private static readonly int QualityId = Shader.PropertyToID("_SE_Quality");
         private static readonly int ShapeId = Shader.PropertyToID("_SE_Shape");
+        private static readonly int EdgeId = Shader.PropertyToID("_SE_Edge");
         private static readonly int BakeId = Shader.PropertyToID("_SE_Bake");
         private static readonly int LowId = Shader.PropertyToID("_SE_Low");
         private static readonly int GasAId = Shader.PropertyToID("_SE_GasA");
@@ -254,6 +255,7 @@ namespace StellarEffects.Nebulae
                 block.SetVector(StarId, new Vector4(nebula.StarTemperature, nebula.StarBrightness, nebula.StarFalloff, rotation));
                 block.SetVector(QualityId, new Vector4(StellarQuality.NoiseDetail, nebula.GasCount, nebula.Variation, nebula.Seed));
                 block.SetVector(ShapeId, new Vector4(nebula.Shape, nebula.ShapeRatio, nebula.ShapeArms, nebula.Irregularity));
+                block.SetVector(EdgeId, new Vector4(nebula.EdgeBlur, 0f, 0f, 0f));
                 block.SetVector(LowId, new Vector4(lowWidth, lowHeight, 1f / lowWidth, 1f / lowHeight));
                 block.SetVectorArray(GasAId, gasA);
                 block.SetVectorArray(GasBId, gasB);
@@ -359,6 +361,7 @@ namespace StellarEffects.Nebulae
             h = Mix(h, nebula.ShapeRatio);
             h = Mix(h, nebula.ShapeArms);
             h = Mix(h, nebula.Irregularity);
+            h = Mix(h, nebula.EdgeBlur);
             h = Mix(h, nebula.GasCount);
             h = Mix(h, nebula.Variation);
             h = Mix(h, nebula.Seed);

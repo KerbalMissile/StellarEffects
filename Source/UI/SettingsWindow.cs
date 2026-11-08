@@ -407,6 +407,7 @@ namespace StellarEffects.UI
             n.Extent = Row("extent", n.Extent, 0.05f, 1f, NebulaLimits.GasExtentMin, NebulaLimits.GasExtentMax);
             n.Flatten = Row("flatten", n.Flatten, 0.05f, 1f, NebulaLimits.GasFlattenMin, 1f);
             n.Hollow = Row("hollow", n.Hollow, 0f, 0.9f, 0f, NebulaLimits.GasHollowMax);
+            n.EdgeBlur = Row("edgeBlur", n.EdgeBlur, 0f, 1f);
 
             n.GasCount = Mathf.RoundToInt(Row("gasTypes", n.GasCount, 1f, NebulaLimits.GasMax, 1f, NebulaLimits.GasMax));
 

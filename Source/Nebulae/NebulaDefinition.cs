@@ -174,6 +174,7 @@ namespace StellarEffects.Nebulae
         public float Extent = 0.9f;
         public float Flatten = 1f;
         public float Hollow = 0.9f;
+        public float EdgeBlur = 0f;
         public int Shape = 4;
         public float ShapeRatio = 0.5f;
         public float ShapeArms = 3f;
@@ -227,6 +228,7 @@ namespace StellarEffects.Nebulae
             node.TryGetValue("extent", ref definition.Extent);
             node.TryGetValue("flatten", ref definition.Flatten);
             node.TryGetValue("hollow", ref definition.Hollow);
+            node.TryGetValue("edgeBlur", ref definition.EdgeBlur);
             node.TryGetValue("shape", ref definition.Shape);
             node.TryGetValue("shapeRatio", ref definition.ShapeRatio);
             node.TryGetValue("shapeArms", ref definition.ShapeArms);
@@ -264,6 +266,7 @@ namespace StellarEffects.Nebulae
             Extent = Mathf.Clamp(Extent, NebulaLimits.GasExtentMin, NebulaLimits.GasExtentMax);
             Flatten = Mathf.Clamp(Flatten, NebulaLimits.GasFlattenMin, 1f);
             Hollow = Mathf.Clamp(Hollow, 0f, NebulaLimits.GasHollowMax);
+            EdgeBlur = Mathf.Clamp01(EdgeBlur);
             Shape = Mathf.Clamp(Shape, 0, NebulaLimits.ShapeMax);
             ShapeRatio = Mathf.Clamp(ShapeRatio, NebulaLimits.ShapeRatioMin, NebulaLimits.ShapeRatioMax);
             ShapeArms = Mathf.Clamp(ShapeArms, 1f, NebulaLimits.ShapeArmsMax);
@@ -311,6 +314,7 @@ namespace StellarEffects.Nebulae
             Extent = other.Extent;
             Flatten = other.Flatten;
             Hollow = other.Hollow;
+            EdgeBlur = other.EdgeBlur;
             Shape = other.Shape;
             ShapeRatio = other.ShapeRatio;
             ShapeArms = other.ShapeArms;
@@ -343,6 +347,7 @@ namespace StellarEffects.Nebulae
             node.SetValue("extent", Format(Extent), true);
             node.SetValue("flatten", Format(Flatten), true);
             node.SetValue("hollow", Format(Hollow), true);
+            node.SetValue("edgeBlur", Format(EdgeBlur), true);
             node.SetValue("shape", Shape.ToString(CultureInfo.InvariantCulture), true);
             node.SetValue("shapeRatio", Format(ShapeRatio), true);
             node.SetValue("shapeArms", Format(ShapeArms), true);

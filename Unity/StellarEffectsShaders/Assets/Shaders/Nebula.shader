@@ -25,6 +25,7 @@ Shader "Hidden/StellarEffects/Nebula"
         float4 _SE_Star;
         float4 _SE_Quality;
         float4 _SE_Shape;
+        float4 _SE_Edge;
         float4 _SE_Bake;
         float4 _SE_Low;
         float4 _SE_Occ;
@@ -51,6 +52,7 @@ Shader "Hidden/StellarEffects/Nebula"
         static float nebExtent;
         static float nebInvFlatten;
         static float nebHollow;
+        static float nebEdge;
         static float3 nebStarColor;
         static float3 nebStarBase;
         static float octaves;
@@ -293,6 +295,7 @@ Shader "Hidden/StellarEffects/Nebula"
             if (d >= nebExtent) return 0.0;
 
             float env = 1.0 - smoothstep(nebExtent * 0.3, nebExtent, d);
+            env *= 1.0 - nebEdge * smoothstep(nebExtent * 0.6, nebExtent, d);
             if (nebHollow > 0.001) env *= smoothstep(nebHollow * nebExtent * 0.4, nebHollow * nebExtent, d);
             return env;
         }
@@ -386,6 +389,7 @@ Shader "Hidden/StellarEffects/Nebula"
             nebExtent = _SE_GasC[0].z;
             nebInvFlatten = 1.0 / max(_SE_GasC[0].w, 0.02);
             nebHollow = _SE_GasD[0].w;
+            nebEdge = _SE_Edge.x;
             nebShape = _SE_Shape.x;
             nebRatio = max(_SE_Shape.y, 0.0);
             nebArms = floor(_SE_Shape.z + 0.5);
