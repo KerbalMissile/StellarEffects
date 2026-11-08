@@ -606,7 +606,13 @@ Shader "Hidden/StellarEffects/Quasar"
 
                     if (coreOn) AddCore(p, dt, coreColor, occl, color);
                     if (torusOn) AddTorus(p, v, dt, t, bt, coreColor, dither, rayT < -b ? dt : 0.0, color, transmittance, occl);
-                    if (jetOn) AddJet(p, dt, t, bt, jetCore, jetTail, transmittance, jetWidth, jetPlume, jet);
+                    if (jetOn)
+                    {
+                        float3 pj = x0 + v * (rayT + dt * frac(dither + 0.61803399 * iter));
+                        float azj = abs(dot(pj, n));
+                        float plumeJ = PlumeAmount(azj / jetLength);
+                        AddJet(pj, dt, t, bt, jetCore, jetTail, transmittance, JetHalfWidthP(azj, plumeJ), plumeJ, jet);
+                    }
 
                     if (depthT < 0.0 && (transmittance < 0.75 || dot(color, float3(0.2126, 0.7152, 0.0722)) > 0.12 || max(jet.r, max(jet.g, jet.b)) > 0.12)) depthT = rayT;
                     if (transmittance < 0.02) break;
