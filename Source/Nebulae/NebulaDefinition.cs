@@ -186,6 +186,7 @@ namespace StellarEffects.Nebulae
         public CelestialBody Target;
         public bool Missing;
         public string SourcePath;
+        public int SourceRank;
 
         private NebulaDefinition baseline;
 

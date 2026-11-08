@@ -20,7 +20,7 @@ namespace StellarEffects.Nebulae
             ConfigNode root = File.Exists(path) ? ConfigNode.Load(path) : null;
             if (root == null) root = new ConfigNode();
 
-            ConfigNode node = FindNode(root, nebula.Body, nebula.Index);
+            ConfigNode node = FindNode(root, nebula);
             if (node == null)
             {
                 node = root.AddNode(NebulaDefinition.NodeName);
@@ -48,8 +48,12 @@ namespace StellarEffects.Nebulae
             ConfigNode root = ConfigNode.Load(path);
             if (root == null) return;
 
-            foreach (ConfigNode candidate in FindNodes(root, nebula.Body, nebula.Index))
-                root.RemoveNode(candidate);
+            ConfigNode target = FindNode(root, nebula);
+            if (target != null)
+            {
+                root.RemoveNode(target);
+                ShiftRanks(nebula, path);
+            }
 
             if (root.CountNodes == 0 && root.CountValues == 0)
                 File.Delete(path);
@@ -59,10 +63,24 @@ namespace StellarEffects.Nebulae
             nebula.SourcePath = null;
         }
 
-        private static ConfigNode FindNode(ConfigNode root, string body, int index)
+        private static ConfigNode FindNode(ConfigNode root, NebulaDefinition nebula)
         {
-            List<ConfigNode> matches = FindNodes(root, body, index);
-            return matches.Count > 0 ? matches[0] : null;
+            List<ConfigNode> matches = FindNodes(root, nebula.Body, nebula.Index);
+            if (matches.Count == 0) return null;
+
+            return matches[Mathf.Clamp(nebula.SourceRank, 0, matches.Count - 1)];
+        }
+
+        private static void ShiftRanks(NebulaDefinition removed, string path)
+        {
+            NebulaManager manager = NebulaManager.Instance;
+            if (manager == null) return;
+
+            foreach (NebulaDefinition other in manager.Definitions)
+            {
+                if (other != removed && other.SourcePath == path && other.Body == removed.Body && other.Index == removed.Index && other.SourceRank > removed.SourceRank)
+                    other.SourceRank--;
+            }
         }
 
         private static List<ConfigNode> FindNodes(ConfigNode root, string body, int index)
@@ -135,6 +153,33 @@ namespace StellarEffects.Nebulae
 
                 if (!found) target.AddValue(key, value);
             }
+
+            for (int i = 0; i < source.nodes.Count; i++)
+            {
+                ConfigNode child = source.nodes[i];
+                ConfigNode existing = FindChild(target, child.name);
+
+                if (existing == null) target.AddNode(child.CreateCopy());
+                else Merge(existing, child);
+            }
+
+            for (int i = target.nodes.Count - 1; i >= 0; i--)
+            {
+                string childName = BaseName(target.nodes[i].name);
+                if (childName.StartsWith("gas_") && !source.HasNode(childName))
+                    target.RemoveNode(target.nodes[i]);
+            }
+        }
+
+        private static ConfigNode FindChild(ConfigNode target, string name)
+        {
+            for (int i = 0; i < target.nodes.Count; i++)
+            {
+                if (BaseName(target.nodes[i].name) == name)
+                    return target.nodes[i];
+            }
+
+            return null;
         }
 
         private static string FileName(string body, int index)

@@ -57,7 +57,11 @@ namespace StellarEffects.Nebulae
             DontDestroyOnLoad(gameObject);
 
             foreach (UrlDir.UrlConfig url in GameDatabase.Instance.GetConfigs(NebulaDefinition.NodeName))
-                definitions.Add(NebulaDefinition.FromNode(url.config, url.parent != null ? url.parent.fullPath : null));
+            {
+                NebulaDefinition loaded = NebulaDefinition.FromNode(url.config, url.parent != null ? url.parent.fullPath : null);
+                loaded.SourceRank = definitions.FindAll(n => n.SourcePath == loaded.SourcePath && n.Body == loaded.Body && n.Index == loaded.Index).Count;
+                definitions.Add(loaded);
+            }
 
             Debug.Log("[StellarEffects] Loaded " + definitions.Count + " nebula definition(s).");
 
