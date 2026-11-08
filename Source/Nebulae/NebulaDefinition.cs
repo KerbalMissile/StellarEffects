@@ -157,6 +157,7 @@ namespace StellarEffects.Nebulae
         public const string NodeName = "STELLAREFFECTS_NEBULA";
 
         public string Body = "Sun";
+        public int Index = 0;
         public float Radius = 0f;
         public float Size = 3000f;
         public float Brightness = 1f;
@@ -194,10 +195,11 @@ namespace StellarEffects.Nebulae
                 Gases[i] = NebulaGas.CreateDefault(i);
         }
 
-        public static NebulaDefinition CreateNew(string body)
+        public static NebulaDefinition CreateNew(string body, int index)
         {
             var definition = new NebulaDefinition();
             definition.Body = body;
+            definition.Index = index;
             definition.Commit();
             return definition;
         }
@@ -207,6 +209,7 @@ namespace StellarEffects.Nebulae
             var definition = new NebulaDefinition();
 
             node.TryGetValue("body", ref definition.Body);
+            node.TryGetValue("index", ref definition.Index);
             node.TryGetValue("radius", ref definition.Radius);
             node.TryGetValue("size", ref definition.Size);
             node.TryGetValue("brightness", ref definition.Brightness);
@@ -290,6 +293,7 @@ namespace StellarEffects.Nebulae
         public void CopyFrom(NebulaDefinition other)
         {
             Body = other.Body;
+            Index = other.Index;
             Radius = other.Radius;
             Size = other.Size;
             Brightness = other.Brightness;
@@ -321,6 +325,7 @@ namespace StellarEffects.Nebulae
         public void WriteTo(ConfigNode node)
         {
             node.SetValue("body", Body, true);
+            node.SetValue("index", Index.ToString(CultureInfo.InvariantCulture), true);
             node.SetValue("radius", Format(Radius), true);
             node.SetValue("size", Format(Size), true);
             node.SetValue("brightness", Format(Brightness), true);

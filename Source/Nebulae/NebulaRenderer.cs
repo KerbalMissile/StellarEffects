@@ -42,7 +42,9 @@ namespace StellarEffects.Nebulae
         public List<NebulaDefinition> Definitions;
 
         private readonly List<MaterialPropertyBlock> propertyBlocks = new List<MaterialPropertyBlock>();
-        private readonly Dictionary<NebulaDefinition, HiddenBody> hiddenBodies = new Dictionary<NebulaDefinition, HiddenBody>();
+        private readonly Dictionary<CelestialBody, HiddenBody> hiddenBodies = new Dictionary<CelestialBody, HiddenBody>();
+        private readonly HashSet<CelestialBody> seenBodies = new HashSet<CelestialBody>();
+        private readonly HashSet<CelestialBody> hideBodies = new HashSet<CelestialBody>();
         private readonly Dictionary<NebulaDefinition, BakeState> bakes = new Dictionary<NebulaDefinition, BakeState>();
         private readonly List<Visible> visibleList = new List<Visible>();
         private readonly RenderTargetIdentifier[] lowTargets = new RenderTargetIdentifier[2];
@@ -151,6 +153,8 @@ namespace StellarEffects.Nebulae
             }
 
             visibleList.Clear();
+            seenBodies.Clear();
+            hideBodies.Clear();
 
             foreach (NebulaDefinition nebula in Definitions)
             {
@@ -161,7 +165,7 @@ namespace StellarEffects.Nebulae
 
                 if (brightness <= 0f)
                 {
-                    SetHidden(nebula, false);
+                    seenBodies.Add(body);
                     continue;
                 }
 
@@ -174,7 +178,8 @@ namespace StellarEffects.Nebulae
                 bool visible = toCenter.magnitude > MinDistance * scaledRadius
                     && ScreenRect(toCenter, bound, view, tanX, tanY, out screenRect);
 
-                SetHidden(nebula, visible && nebula.HideBody);
+                seenBodies.Add(body);
+                if (visible && nebula.HideBody) hideBodies.Add(body);
                 LogStatus(nebula, toCenter, scaledRadius, visible, time);
 
                 if (!visible) continue;
@@ -192,6 +197,9 @@ namespace StellarEffects.Nebulae
                     Brightness = brightness
                 });
             }
+
+            foreach (CelestialBody seen in seenBodies)
+                SetHidden(seen, hideBodies.Contains(seen));
 
             if (visibleList.Count > 0)
             {
@@ -421,8 +429,11 @@ namespace StellarEffects.Nebulae
 
         public void Release(NebulaDefinition nebula)
         {
-            SetHidden(nebula, false);
-            hiddenBodies.Remove(nebula);
+            if (nebula.Target != null)
+            {
+                SetHidden(nebula.Target, false);
+                hiddenBodies.Remove(nebula.Target);
+            }
 
             BakeState bake;
             if (bakes.TryGetValue(nebula, out bake))
@@ -432,19 +443,19 @@ namespace StellarEffects.Nebulae
             }
         }
 
-        private void SetHidden(NebulaDefinition nebula, bool hide)
+        private void SetHidden(CelestialBody body, bool hide)
         {
-            if (!hiddenBodies.TryGetValue(nebula, out HiddenBody state))
+            if (!hiddenBodies.TryGetValue(body, out HiddenBody state))
             {
                 state = new HiddenBody();
-                hiddenBodies[nebula] = state;
+                hiddenBodies[body] = state;
             }
 
             if (hide)
             {
                 if (state.Renderers == null)
                 {
-                    state.Renderers = nebula.Target.scaledBody.GetComponentsInChildren<Renderer>(true);
+                    state.Renderers = body.scaledBody.GetComponentsInChildren<Renderer>(true);
                     state.WasEnabled = new bool[state.Renderers.Length];
                 }
 

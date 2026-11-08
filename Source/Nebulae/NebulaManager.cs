@@ -29,10 +29,11 @@ namespace StellarEffects.Nebulae
 
         public NebulaDefinition Add(string body)
         {
-            NebulaDefinition existing = definitions.Find(n => n.Body == body);
-            if (existing != null) return existing;
+            int index = 0;
+            while (definitions.Exists(n => n.Body == body && n.Index == index))
+                index++;
 
-            NebulaDefinition created = NebulaDefinition.CreateNew(body);
+            NebulaDefinition created = NebulaDefinition.CreateNew(body, index);
             definitions.Add(created);
             return created;
         }

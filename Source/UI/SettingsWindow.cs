@@ -244,7 +244,7 @@ namespace StellarEffects.UI
             listScroll = GUILayout.BeginScrollView(listScroll, GUILayout.Height(320));
             for (int i = 0; i < nebulae.Count; i++)
             {
-                bool on = GUILayout.Toggle(selected == i, nebulae[i].Body, GUI.skin.button);
+                bool on = GUILayout.Toggle(selected == i, nebulae[i].Index == 0 ? nebulae[i].Body : nebulae[i].Body + " #" + (nebulae[i].Index + 1), GUI.skin.button);
                 if (on && selected != i) Select(i);
             }
             GUILayout.EndScrollView();
@@ -539,12 +539,6 @@ namespace StellarEffects.UI
             NebulaManager manager = NebulaManager.Instance;
             string name = newBody.Trim();
             if (manager == null || name.Length == 0) return;
-
-            if (manager.Definitions.Exists(h => h.Body == name))
-            {
-                status = name + " already has a nebula.";
-                return;
-            }
 
             if (FlightGlobals.Bodies == null || !FlightGlobals.Bodies.Exists(b => b.bodyName == name))
             {

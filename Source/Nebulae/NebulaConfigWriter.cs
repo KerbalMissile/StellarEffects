@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using UnityEngine;
 
@@ -12,14 +13,14 @@ namespace StellarEffects.Nebulae
         {
             string path = nebula.SourcePath;
             if (string.IsNullOrEmpty(path))
-                path = Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, ConfigFolder), FileName(nebula.Body));
+                path = Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, ConfigFolder), FileName(nebula.Body, nebula.Index));
 
             Directory.CreateDirectory(Path.GetDirectoryName(path));
 
             ConfigNode root = File.Exists(path) ? ConfigNode.Load(path) : null;
             if (root == null) root = new ConfigNode();
 
-            ConfigNode node = FindNode(root, nebula.Body);
+            ConfigNode node = FindNode(root, nebula.Body, nebula.Index);
             if (node == null)
             {
                 node = root.AddNode(NebulaDefinition.NodeName);
@@ -47,7 +48,7 @@ namespace StellarEffects.Nebulae
             ConfigNode root = ConfigNode.Load(path);
             if (root == null) return;
 
-            foreach (ConfigNode candidate in FindNodes(root, nebula.Body))
+            foreach (ConfigNode candidate in FindNodes(root, nebula.Body, nebula.Index))
                 root.RemoveNode(candidate);
 
             if (root.CountNodes == 0 && root.CountValues == 0)
@@ -58,20 +59,20 @@ namespace StellarEffects.Nebulae
             nebula.SourcePath = null;
         }
 
-        private static ConfigNode FindNode(ConfigNode root, string body)
+        private static ConfigNode FindNode(ConfigNode root, string body, int index)
         {
-            List<ConfigNode> matches = FindNodes(root, body);
+            List<ConfigNode> matches = FindNodes(root, body, index);
             return matches.Count > 0 ? matches[0] : null;
         }
 
-        private static List<ConfigNode> FindNodes(ConfigNode root, string body)
+        private static List<ConfigNode> FindNodes(ConfigNode root, string body, int index)
         {
             var matches = new List<ConfigNode>();
 
             for (int i = 0; i < root.nodes.Count; i++)
             {
                 ConfigNode candidate = root.nodes[i];
-                if (BaseName(candidate.name) == NebulaDefinition.NodeName && MatchesBody(candidate, body))
+                if (BaseName(candidate.name) == NebulaDefinition.NodeName && MatchesBody(candidate, body, index))
                     matches.Add(candidate);
             }
 
@@ -86,8 +87,10 @@ namespace StellarEffects.Nebulae
             return name.Trim().TrimStart('@', '%');
         }
 
-        private static bool MatchesBody(ConfigNode candidate, string body)
+        private static bool MatchesBody(ConfigNode candidate, string body, int index)
         {
+            if (NodeIndex(candidate) != index) return false;
+
             string value = candidate.GetValue("body") ?? candidate.GetValue("@body") ?? candidate.GetValue("%body");
             if (value != null) return value.Trim() == body;
 
@@ -98,6 +101,16 @@ namespace StellarEffects.Nebulae
 
             int close = name.IndexOf(']', open);
             return close > open && name.Substring(open + 1, close - open - 1).Trim() == body;
+        }
+
+        private static int NodeIndex(ConfigNode candidate)
+        {
+            string value = candidate.GetValue("index") ?? candidate.GetValue("@index") ?? candidate.GetValue("%index");
+
+            int parsed;
+            if (value != null && int.TryParse(value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out parsed)) return parsed;
+
+            return 0;
         }
 
         private static void Merge(ConfigNode target, ConfigNode source)
@@ -124,12 +137,12 @@ namespace StellarEffects.Nebulae
             }
         }
 
-        private static string FileName(string body)
+        private static string FileName(string body, int index)
         {
             foreach (char c in Path.GetInvalidFileNameChars())
                 body = body.Replace(c, '_');
 
-            return body + "_Nebula.cfg";
+            return index == 0 ? body + "_Nebula.cfg" : body + "_Nebula_" + (index + 1) + ".cfg";
         }
     }
 }
