@@ -337,6 +337,7 @@ Shader "Hidden/StellarEffects/BlackHole"
                 if (sceneDistance < tEnter) return Empty();
 
                 float camDist = sqrt(dot(x, x));
+                float3 toBlackHole = -x / max(camDist, 1e-4);
                 bool shadowRay = b < 0.0 && camDist > 1.5;
                 float edgeW = 0.7 * camDist * 2.0 * _SE_Ray.y / _ScreenParams.y;
 
@@ -352,6 +353,16 @@ Shader "Hidden/StellarEffects/BlackHole"
                 float3 n = _SE_Normal.xyz;
                 float3 t = normalize(cross(n, abs(n.y) < 0.99 ? float3(0, 1, 0) : float3(1, 0, 0)));
                 float3 bt = cross(n, t);
+
+                float3 glowOffset = 0;
+                if (_SE_DiskB.w > 0.5)
+                {
+                    float3 towardViewer = -toBlackHole;
+                    towardViewer -= n * dot(towardViewer, n);
+                    if (dot(towardViewer, towardViewer) > 1e-6)
+                        glowOffset = _SE_Normal.w * normalize(cross(towardViewer, n)) * max(_SE_Disk.x, 1.5) * 0.12;
+                }
+                float3 v0 = v;
 
                 float peak = _SE_Look.x;
                 float3 glowColor = Vivid(Blackbody(peak * 0.6), _SE_Extra.x);
@@ -412,7 +423,8 @@ Shader "Hidden/StellarEffects/BlackHole"
                     if (iter == 0) dt *= jitter;
                     dt = min(dt, max(sceneDistance - traveled, 1e-5));
 
-                    glow += transmittance * glowColor * (glowGain * exp2((1.0 - r) * 0.6558) * saturate(1.0 - 1.0 / r) * dt);
+                    float rg = _SE_DiskB.w > 0.5 ? length(x - glowOffset) : r;
+                    glow += transmittance * glowColor * (glowGain * exp2((1.0 - rg) * 0.6558) * saturate(1.0 - 1.0 / max(rg, 1.0)) * dt);
                     AddDisk(x, r, v, dt, t, bt, color, transmittance);
                     if (jetOn) AddJet(x, r, v, dt, t, bt, jetCore, jetTail, transmittance, jet);
                     if (depthT < 0.0 && (transmittance < 0.75 || max(jet.r, max(jet.g, jet.b)) > 0.12)) depthT = traveled;
@@ -456,7 +468,8 @@ Shader "Hidden/StellarEffects/BlackHole"
                     float halo = exp(-max(CriticalB - hb, 0.0) * 1.8) * exp(-max(hb - CriticalB, 0.0) * 1.2);
                     float3 haloColor = Vivid(Blackbody(peak * 0.75), _SE_Extra.x) * 0.9;
                     rgb += haloColor * (halo * min(_SE_Extra.y, 2.0) * 0.25 * transmittance);
-                    float wide = exp(-max(hb - CriticalB, 0.0) * 0.35) * saturate(1.0 - 1.0 / max(hb, 1.0));
+                    float hbWide = _SE_DiskB.w > 0.5 ? length(hv - cross(glowOffset, v0)) : hb;
+                    float wide = exp(-max(hbWide - CriticalB, 0.0) * 0.35) * saturate(1.0 - 1.0 / max(hbWide, 1.0));
                     rgb += haloColor * (wide * min(_SE_Extra.y, 2.0) * 0.035 * transmittance);
                 }
 

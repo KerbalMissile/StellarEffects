@@ -130,6 +130,7 @@ namespace StellarEffects.Blackholes
         public int Steps = 200;
         public Vector3 Normal = Vector3.up;
         public bool HideBody = true;
+        public bool GlowShift = false;
         public int Debug = 0;
         public bool Jets = true;
         public float JetBrightness = 1f;
@@ -175,6 +176,7 @@ namespace StellarEffects.Blackholes
             node.TryGetValue("steps", ref definition.Steps);
             node.TryGetValue("normal", ref definition.Normal);
             node.TryGetValue("hideBody", ref definition.HideBody);
+            node.TryGetValue("glowShift", ref definition.GlowShift);
             node.TryGetValue("debug", ref definition.Debug);
             node.TryGetValue("jets", ref definition.Jets);
             node.TryGetValue("jetBrightness", ref definition.JetBrightness);
@@ -245,6 +247,7 @@ namespace StellarEffects.Blackholes
             Steps = other.Steps;
             Normal = other.Normal;
             HideBody = other.HideBody;
+            GlowShift = other.GlowShift;
             Debug = other.Debug;
             Jets = other.Jets;
             JetBrightness = other.JetBrightness;
@@ -275,6 +278,7 @@ namespace StellarEffects.Blackholes
             node.SetValue("normal", Format(Normal.x) + ", " + Format(Normal.y) + ", " + Format(Normal.z), true);
             node.SetValue("steps", Steps.ToString(CultureInfo.InvariantCulture), true);
             node.SetValue("hideBody", HideBody ? "true" : "false", true);
+            node.SetValue("glowShift", GlowShift ? "true" : "false", true);
             node.SetValue("debug", Debug.ToString(CultureInfo.InvariantCulture), true);
             node.SetValue("jets", Jets ? "true" : "false", true);
             node.SetValue("jetBrightness", Format(JetBrightness), true);

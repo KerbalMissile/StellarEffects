@@ -112,7 +112,7 @@ namespace StellarEffects.Blackholes
                 block.SetVector(CenterId, new Vector4(toCenter.x, toCenter.y, toCenter.z, horizonRadius));
                 block.SetVector(NormalId, new Vector4(normal.x, normal.y, normal.z, spinSign));
                 block.SetVector(DiskId, new Vector4(hole.DiskInner, hole.DiskOuter, hole.DiskThickness, hole.Turbulence));
-                block.SetVector(DiskBId, new Vector4(hole.Twirl, StellarQuality.NoiseDetail, StellarQuality.MarchScale, 0f));
+                block.SetVector(DiskBId, new Vector4(hole.Twirl, StellarQuality.NoiseDetail, StellarQuality.MarchScale, hole.GlowShift ? 1f : 0f));
                 block.SetVector(LookId, new Vector4(hole.Temperature, hole.Brightness, rotation, hole.Debug));
                 block.SetVector(ExtraId, new Vector4(hole.ColorSaturation, hole.Glow, hole.PhotonRing, steps));
                 block.SetVector(RayId, new Vector4(tanX, tanY, effectBounds, 1f));
