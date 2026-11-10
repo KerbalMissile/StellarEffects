@@ -136,13 +136,13 @@ namespace StellarEffects.Quasars
         {
             Radius = Mathf.Max(Radius, 0f);
             CoreBrightness = Mathf.Clamp(CoreBrightness, 0f, QuasarLimits.CoreBrightnessMax);
-            CoreSize = Mathf.Clamp(CoreSize, QuasarLimits.CoreSizeMin, QuasarLimits.CoreSizeMax);
+            CoreSize = Mathf.Max(CoreSize, QuasarLimits.CoreSizeMin);
             CoreTemperature = Mathf.Clamp(CoreTemperature, 1000f, QuasarLimits.CoreTemperatureMax);
             ColorSaturation = Mathf.Clamp(ColorSaturation, 0f, QuasarLimits.ColorSaturationMax);
             Glare = Mathf.Clamp(Glare, 0f, QuasarLimits.GlareMax);
-            GlareSize = Mathf.Clamp(GlareSize, 2f, QuasarLimits.GlareSizeMax);
-            TorusInner = Mathf.Clamp(TorusInner, 2f, QuasarLimits.TorusInnerMax);
-            TorusOuter = Mathf.Clamp(TorusOuter, TorusInner + 2f, QuasarLimits.TorusOuterMax);
+            GlareSize = Mathf.Max(GlareSize, 2f);
+            TorusInner = Mathf.Max(TorusInner, 2f);
+            TorusOuter = Mathf.Max(TorusOuter, TorusInner + 2f);
             TorusThickness = Mathf.Clamp(TorusThickness, QuasarLimits.TorusThicknessMin, QuasarLimits.TorusThicknessMax);
             TorusDensity = Mathf.Clamp(TorusDensity, 0f, QuasarLimits.TorusDensityMax);
             TorusTemperature = Mathf.Clamp(TorusTemperature, 800f, QuasarLimits.TorusTemperatureMax);
@@ -152,8 +152,8 @@ namespace StellarEffects.Quasars
             RotationSpeed = Mathf.Clamp(RotationSpeed, -QuasarLimits.RotationSpeedMax, QuasarLimits.RotationSpeedMax);
             Steps = Mathf.Clamp(Steps, 32, QuasarLimits.StepsMax);
             JetBrightness = Mathf.Clamp(JetBrightness, 0f, QuasarLimits.JetBrightnessMax);
-            JetLength = Mathf.Clamp(JetLength, 5f, QuasarLimits.JetLengthMax);
-            JetWidth = Mathf.Clamp(JetWidth, 0.2f, QuasarLimits.JetWidthMax);
+            JetLength = Mathf.Max(JetLength, 5f);
+            JetWidth = Mathf.Max(JetWidth, 0.2f);
             JetSpread = Mathf.Clamp(JetSpread, 0f, QuasarLimits.JetSpreadMax);
             JetTwist = Mathf.Clamp(JetTwist, -QuasarLimits.JetTwistMax, QuasarLimits.JetTwistMax);
             JetTemperature = Mathf.Clamp(JetTemperature, 3000f, QuasarLimits.JetTemperatureMax);

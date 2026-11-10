@@ -107,7 +107,7 @@ namespace StellarEffects.Nebulae
             Density = Mathf.Clamp(Density, 0f, NebulaLimits.GasDensityMax);
             Emission = Mathf.Clamp(Emission, 0f, NebulaLimits.GasEmissionMax);
             Absorption = Mathf.Clamp(Absorption, 0f, NebulaLimits.GasAbsorptionMax);
-            Scale = Mathf.Clamp(Scale, NebulaLimits.GasScaleMin, NebulaLimits.GasScaleMax);
+            Scale = Mathf.Max(Scale, NebulaLimits.GasScaleMin);
             Coverage = Mathf.Clamp(Coverage, 0f, 0.95f);
             Contrast = Mathf.Clamp01(Contrast);
             Phase = Mathf.Clamp(Phase, -NebulaLimits.GasPhaseMax, NebulaLimits.GasPhaseMax);
@@ -258,7 +258,7 @@ namespace StellarEffects.Nebulae
         public void Clamp()
         {
             Radius = Mathf.Max(Radius, 0f);
-            Size = Mathf.Clamp(Size, NebulaLimits.SizeMin, NebulaLimits.SizeMax);
+            Size = Mathf.Max(Size, NebulaLimits.SizeMin);
             Brightness = Mathf.Clamp(Brightness, 0f, NebulaLimits.BrightnessMax);
             ColorSaturation = Mathf.Clamp(ColorSaturation, 0f, NebulaLimits.ColorSaturationMax);
             StarTemperature = Mathf.Clamp(StarTemperature, 1000f, NebulaLimits.StarTemperatureMax);

@@ -329,12 +329,12 @@ namespace StellarEffects.UI
             BlackHoleDefinition h = holes[selected];
 
             h.Draw = GUILayout.Toggle(h.Draw, "draw");
-            h.HorizonRadius = Row("horizonRadius", h.HorizonRadius, 0f, 1e9f, false);
+            h.HorizonRadius = Row("horizonRadius", h.HorizonRadius, 0f, 1e9f, 0f, 1e9f, false, true);
             h.Temperature = Row("temperature", h.Temperature, 1000f, 40000f);
             h.Brightness = Row("brightness", h.Brightness, 0f, 20f);
             h.ColorSaturation = Row("colorSaturation", h.ColorSaturation, 0f, 10f);
-            h.DiskInner = Row("diskInner", h.DiskInner, 1.5f, 30f);
-            h.DiskOuter = Row("diskOuter", h.DiskOuter, 2.5f, 80f);
+            h.DiskInner = Row("diskInner", h.DiskInner, 1.5f, 30f, 1.5f, float.MaxValue, true, true);
+            h.DiskOuter = Row("diskOuter", h.DiskOuter, 2.5f, 80f, 2.5f, float.MaxValue, true, true);
             h.DiskThickness = Row("diskThickness", h.DiskThickness, 0.005f, 0.5f);
             h.Glow = Row("glow", h.Glow, 0f, 5f);
             h.PhotonRing = Row("photonRing", h.PhotonRing, 0f, 5f);
@@ -344,8 +344,8 @@ namespace StellarEffects.UI
             h.GlowShift = GUILayout.Toggle(h.GlowShift, "glowShift");
             h.Jets = GUILayout.Toggle(h.Jets, "jets");
             h.JetBrightness = Row("jetBrightness", h.JetBrightness, 0f, 50f);
-            h.JetLength = Row("jetLength", h.JetLength, 5f, 5000f);
-            h.JetWidth = Row("jetWidth", h.JetWidth, 0.2f, 100f);
+            h.JetLength = Row("jetLength", h.JetLength, 5f, 5000f, 5f, float.MaxValue, true, true);
+            h.JetWidth = Row("jetWidth", h.JetWidth, 0.2f, 100f, 0.2f, float.MaxValue, true, true);
             h.JetSpread = Row("jetSpread", h.JetSpread, 0f, 1.5f);
             h.JetTwist = Row("jetTwist", h.JetTwist, 0f, 0.02f);
             h.JetTemperature = Row("jetTemperature", h.JetTemperature, 3000f, 40000f);
@@ -381,16 +381,16 @@ namespace StellarEffects.UI
             QuasarDefinition q = quasars[selected];
 
             q.Draw = GUILayout.Toggle(q.Draw, "draw");
-            q.Radius = Row("radius", q.Radius, 0f, 1e9f, false);
+            q.Radius = Row("radius", q.Radius, 0f, 1e9f, 0f, 1e9f, false, true);
             q.CoreBrightness = Row("coreBrightness", q.CoreBrightness, 0f, 30f, 0f, QuasarLimits.CoreBrightnessMax);
-            q.CoreSize = Row("coreSize", q.CoreSize, 0.5f, 100f, QuasarLimits.CoreSizeMin, QuasarLimits.CoreSizeMax);
+            q.CoreSize = Row("coreSize", q.CoreSize, 0.5f, 100f, QuasarLimits.CoreSizeMin, float.MaxValue, true, true);
             q.CoreTemperature = Row("coreTemperature", q.CoreTemperature, 1000f, 40000f, 1000f, QuasarLimits.CoreTemperatureMax);
             q.ColorSaturation = Row("colorSaturation", q.ColorSaturation, 0f, 6f, 0f, QuasarLimits.ColorSaturationMax);
             q.Glare = Row("glare", q.Glare, 0f, 10f, 0f, QuasarLimits.GlareMax);
-            q.GlareSize = Row("glareSize", q.GlareSize, 2f, 500f, 2f, QuasarLimits.GlareSizeMax);
+            q.GlareSize = Row("glareSize", q.GlareSize, 2f, 500f, 2f, float.MaxValue, true, true);
             q.TorusDensity = Row("torusDensity", q.TorusDensity, 0f, 5f, 0f, QuasarLimits.TorusDensityMax);
-            q.TorusInner = Row("torusInner", q.TorusInner, 2f, 300f, 2f, QuasarLimits.TorusInnerMax);
-            q.TorusOuter = Row("torusOuter", q.TorusOuter, 4f, 600f, 4f, QuasarLimits.TorusOuterMax);
+            q.TorusInner = Row("torusInner", q.TorusInner, 2f, 300f, 2f, float.MaxValue, true, true);
+            q.TorusOuter = Row("torusOuter", q.TorusOuter, 4f, 600f, 4f, float.MaxValue, true, true);
             q.TorusThickness = Row("torusThickness", q.TorusThickness, 0.02f, 1.5f, QuasarLimits.TorusThicknessMin, QuasarLimits.TorusThicknessMax);
             q.TorusTemperature = Row("torusTemperature", q.TorusTemperature, 800f, 6000f, 800f, QuasarLimits.TorusTemperatureMax);
             q.TorusGlow = Row("torusGlow", q.TorusGlow, 0f, 10f, 0f, QuasarLimits.TorusGlowMax);
@@ -399,8 +399,8 @@ namespace StellarEffects.UI
             q.RotationSpeed = Row("rotationSpeed", q.RotationSpeed, -20f, 20f, -QuasarLimits.RotationSpeedMax, QuasarLimits.RotationSpeedMax);
             q.Jets = GUILayout.Toggle(q.Jets, "jets");
             q.JetBrightness = Row("jetBrightness", q.JetBrightness, 0f, 50f, 0f, QuasarLimits.JetBrightnessMax);
-            q.JetLength = Row("jetLength", q.JetLength, 5f, 5000f, 5f, QuasarLimits.JetLengthMax);
-            q.JetWidth = Row("jetWidth", q.JetWidth, 0.2f, 50f, 0.2f, QuasarLimits.JetWidthMax);
+            q.JetLength = Row("jetLength", q.JetLength, 5f, 5000f, 5f, float.MaxValue, true, true);
+            q.JetWidth = Row("jetWidth", q.JetWidth, 0.2f, 50f, 0.2f, float.MaxValue, true, true);
             q.JetSpread = Row("jetSpread", q.JetSpread, 0f, 1.5f, 0f, QuasarLimits.JetSpreadMax);
             q.JetTwist = Row("jetTwist", q.JetTwist, -0.02f, 0.02f, -QuasarLimits.JetTwistMax, QuasarLimits.JetTwistMax);
             q.JetTemperature = Row("jetTemperature", q.JetTemperature, 3000f, 40000f, 3000f, QuasarLimits.JetTemperatureMax);
@@ -438,8 +438,8 @@ namespace StellarEffects.UI
             NebulaDefinition n = nebulae[selected];
 
             n.Draw = GUILayout.Toggle(n.Draw, "draw");
-            n.Radius = Row("radius", n.Radius, 0f, 1e9f, false);
-            n.Size = Row("size", n.Size, 1f, 1e5f, NebulaLimits.SizeMin, NebulaLimits.SizeMax, false);
+            n.Radius = Row("radius", n.Radius, 0f, 1e9f, 0f, 1e9f, false, true);
+            n.Size = Row("size", n.Size, 1f, 1e5f, NebulaLimits.SizeMin, float.MaxValue, false, true);
             n.Brightness = Row("brightness", n.Brightness, 0f, 10f, 0f, NebulaLimits.BrightnessMax);
             n.ColorSaturation = Row("colorSaturation", n.ColorSaturation, 0f, 4f, 0f, NebulaLimits.ColorSaturationMax);
             n.StarTemperature = Row("starTemperature", n.StarTemperature, 2000f, 40000f, 1000f, NebulaLimits.StarTemperatureMax);
@@ -487,7 +487,7 @@ namespace StellarEffects.UI
                 gas.Density = Row("density", gas.Density, 0f, 3f, 0f, NebulaLimits.GasDensityMax);
                 gas.Emission = Row("emission", gas.Emission, 0f, 10f, 0f, NebulaLimits.GasEmissionMax);
                 gas.Absorption = Row("absorption", gas.Absorption, 0f, 5f, 0f, NebulaLimits.GasAbsorptionMax);
-                gas.Scale = Row("scale", gas.Scale, 0.5f, 30f, NebulaLimits.GasScaleMin, NebulaLimits.GasScaleMax);
+                gas.Scale = Row("scale", gas.Scale, 0.5f, 30f, NebulaLimits.GasScaleMin, float.MaxValue, true, true);
                 gas.Coverage = Row("coverage", gas.Coverage, 0f, 0.95f);
                 gas.Contrast = Row("contrast", gas.Contrast, 0f, 1f);
                 gas.Phase = Row("phase", gas.Phase, -0.5f, 0.9f, -NebulaLimits.GasPhaseMax, NebulaLimits.GasPhaseMax);
@@ -571,6 +571,11 @@ namespace StellarEffects.UI
 
         private float Row(string label, float value, float min, float max, float hardMin, float hardMax, bool slider = true)
         {
+            return Row(label, value, min, max, hardMin, hardMax, slider, false);
+        }
+
+        private float Row(string label, float value, float min, float max, float hardMin, float hardMax, bool slider, bool unboundedText)
+        {
             string key = rowPrefix + label;
 
             GUILayout.BeginHorizontal();
@@ -599,7 +604,7 @@ namespace StellarEffects.UI
                 buffers[key] = typed;
                 float parsed;
                 if (float.TryParse(typed, NumberStyles.Float, CultureInfo.InvariantCulture, out parsed))
-                    value = Mathf.Clamp(parsed, hardMin, hardMax);
+                    value = Mathf.Clamp(parsed, hardMin, unboundedText ? float.MaxValue : hardMax);
             }
 
             GUILayout.EndHorizontal();

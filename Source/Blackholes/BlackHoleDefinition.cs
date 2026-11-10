@@ -206,8 +206,8 @@ namespace StellarEffects.Blackholes
             Twirl = Mathf.Clamp(Twirl, 0f, 10f);
             Steps = Mathf.Clamp(Steps, 32, 600);
             JetBrightness = Mathf.Clamp(JetBrightness, 0f, 50f);
-            JetLength = Mathf.Clamp(JetLength, 5f, 5000f);
-            JetWidth = Mathf.Clamp(JetWidth, 0.2f, 100f);
+            JetLength = Mathf.Max(JetLength, 5f);
+            JetWidth = Mathf.Max(JetWidth, 0.2f);
             JetSpread = Mathf.Clamp(JetSpread, 0f, 1.5f);
             JetTwist = Mathf.Clamp(JetTwist, -0.02f, 0.02f);
             JetTemperature = Mathf.Clamp(JetTemperature, 3000f, 40000f);
