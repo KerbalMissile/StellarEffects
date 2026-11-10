@@ -77,6 +77,15 @@ Shader "Hidden/StellarEffects/BlackHole"
                 return lerp(a, b, f.z);
             }
 
+            // Cheap 1D value noise (2 hashes instead of 8); used for the radial ring modulation.
+            float Noise1(float x)
+            {
+                float i = floor(x);
+                float f = frac(x);
+                f = f * f * (3.0 - 2.0 * f);
+                return lerp(Hash(float3(i, 3.7, 1.3)), Hash(float3(i + 1.0, 3.7, 1.3)), f);
+            }
+
             float Fbm2(float3 p)
             {
                 return (Noise(p) + 0.5 * Noise(p * 2.03 + 1.7) + 0.25 * Noise(p * 4.11 + 3.3)) * (1.0 / 1.75);
@@ -239,6 +248,12 @@ Shader "Hidden/StellarEffects/BlackHole"
                 float w0 = 1.0 - abs(2.0 * f0 - 1.0);
                 float w1 = 1.0 - w0;
 
+                // Samples seen through already-dense material contribute little, so they
+                // don't need full noise detail. Big win when the camera is inside the disk.
+                float detail = _SE_DiskB.y;
+                if (transmittance < 0.3) detail = min(detail, 1.0);
+                if (transmittance < 0.1) detail = 0.0;
+
                 float n0 = 0.0;
                 float n1 = 0.0;
                 if (w0 > 0.01)
@@ -246,18 +261,18 @@ Shader "Hidden/StellarEffects/BlackHole"
                     float sn0, cs0;
                     sincos(f0 * ShearPeriod * kep * spin, sn0, cs0);
                     float3 p0 = float3(qp.x * cs0 + qp.y * sn0, qp.y * cs0 - qp.x * sn0, zn * 0.5) * 0.9 + 9.1;
-                    n0 = FbmQ(p0, _SE_DiskB.y);
+                    n0 = FbmQ(p0, detail);
                 }
                 if (w1 > 0.01)
                 {
                     float sn1, cs1;
                     sincos(f1 * ShearPeriod * kep * spin, sn1, cs1);
                     float3 p1 = float3(qp.x * cs1 + qp.y * sn1, qp.y * cs1 - qp.x * sn1, zn * 0.5) * 0.9 + 9.1;
-                    n1 = FbmQ(p1, _SE_DiskB.y);
+                    n1 = FbmQ(p1, detail);
                 }
                 float heat = saturate((n0 * w0 + n1 * w1 - 0.5) * rsqrt(w0 * w0 + w1 * w1) * 1.35 + 0.5);
-                float ringFine = _SE_DiskB.y > 0.5 ? 0.12 * Noise(float3(r * 23.0, 8.1, 2.9)) : 0.06;
-                float rings = 0.78 + 0.22 * Noise(float3(r * 7.0, 3.7, 1.3)) + ringFine;
+                float ringFine = _SE_DiskB.y > 0.5 ? 0.12 * Noise1(r * 23.0 + 17.3) : 0.06;
+                float rings = 0.78 + 0.22 * Noise1(r * 7.0) + ringFine;
                 heat = saturate(heat * rings);
 
                 float knots = smoothstep(0.45, 0.75, heat) * _SE_Disk.w;
@@ -417,7 +432,9 @@ Shader "Hidden/StellarEffects/BlackHole"
                     }
                     dt = max(min(dt, 0.08 * r2 * invB), 0.004);
                     bool inDiskLayer = nearPlane < 5.0 * hs * r && r < diskReach;
-                    if (inDiskLayer) dt = min(dt, 0.25);
+                    // In-disk step cap grows with distance from the camera: far samples are
+                    // below pixel size anyway, so coarser steps cost nothing visible.
+                    if (inDiskLayer) dt = min(dt, 0.25 * (1.0 + 0.1 * traveled));
                     else dt = max(dt, 0.7 * max(tExit - traveled, 0.0) / max((float)(maxSteps - iter), 1.0));
                     dt *= _SE_DiskB.z;
                     if (iter == 0) dt *= jitter;
