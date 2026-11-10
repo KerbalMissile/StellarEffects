@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Reflection;
 using StellarEffects.Blackholes;
+using StellarEffects.Comets;
 using StellarEffects.Nebulae;
 using StellarEffects.Quasars;
 using UnityEngine;
@@ -73,6 +74,7 @@ namespace StellarEffects.UI
             if (GUILayout.Toggle(mode == 0, "Black holes", GUI.skin.button) && mode != 0) SetMode(0);
             if (GUILayout.Toggle(mode == 1, "Quasars", GUI.skin.button) && mode != 1) SetMode(1);
             if (GUILayout.Toggle(mode == 2, "Nebulae", GUI.skin.button) && mode != 2) SetMode(2);
+            if (GUILayout.Toggle(mode == 3, "Comets", GUI.skin.button) && mode != 3) SetMode(3);
             GUILayout.EndHorizontal();
 
             GUILayout.BeginHorizontal();
@@ -87,6 +89,13 @@ namespace StellarEffects.UI
             if (mode == 1)
             {
                 DrawQuasarTab();
+                GUI.DragWindow(new Rect(0, 0, 10000, 22));
+                return;
+            }
+
+            if (mode == 3)
+            {
+                DrawCometTab();
                 GUI.DragWindow(new Rect(0, 0, 10000, 22));
                 return;
             }
@@ -199,6 +208,37 @@ namespace StellarEffects.UI
             GUILayout.Label(status);
         }
 
+        private void DrawCometTab()
+        {
+            StellarEffects.Comets.CometManager manager = StellarEffects.Comets.CometManager.Instance;
+            if (manager == null)
+            {
+                GUILayout.Label("Comets are not loaded.");
+                return;
+            }
+
+            if (!manager.ShaderReady)
+                GUILayout.Label("Comet shader is missing from stellareffects.bundle. Comets will not render. See KSP.log.");
+
+            List<StellarEffects.Comets.CometDefinition> comets = manager.Comets;
+            selected = comets.Count == 0 ? -1 : Mathf.Clamp(selected, 0, comets.Count - 1);
+
+            GUILayout.BeginHorizontal();
+            DrawCometList(comets);
+            DrawCometEditor(comets);
+            GUILayout.EndHorizontal();
+
+            GUILayout.BeginHorizontal();
+            GUI.enabled = selected >= 0;
+            if (GUILayout.Button("Save")) SaveComet(comets[selected]);
+            if (GUILayout.Button("Reset Config")) ResetComet(comets[selected]);
+            if (GUILayout.Button(confirmRemove ? "Click again to remove" : "Remove")) RemoveComet(comets[selected]);
+            GUI.enabled = true;
+            GUILayout.EndHorizontal();
+
+            GUILayout.Label(status);
+        }
+
         private void DrawList(List<BlackHoleDefinition> holes)
         {
             GUILayout.BeginVertical(GUILayout.Width(ListWidth));
@@ -252,6 +292,25 @@ namespace StellarEffects.UI
             GUILayout.Label("New body");
             newBody = GUILayout.TextField(newBody);
             if (GUILayout.Button("Add")) AddNebula();
+
+            GUILayout.EndVertical();
+        }
+
+        private void DrawCometList(List<StellarEffects.Comets.CometDefinition> comets)
+        {
+            GUILayout.BeginVertical(GUILayout.Width(ListWidth));
+
+            listScroll = GUILayout.BeginScrollView(listScroll, GUILayout.Height(320));
+            for (int i = 0; i < comets.Count; i++)
+            {
+                bool on = GUILayout.Toggle(selected == i, comets[i].Body, GUI.skin.button);
+                if (on && selected != i) Select(i);
+            }
+            GUILayout.EndScrollView();
+
+            GUILayout.Label("New body");
+            newBody = GUILayout.TextField(newBody);
+            if (GUILayout.Button("Add")) AddComet();
 
             GUILayout.EndVertical();
         }
@@ -443,6 +502,68 @@ namespace StellarEffects.UI
             GUILayout.EndScrollView();
         }
 
+        private void DrawCometEditor(List<StellarEffects.Comets.CometDefinition> comets)
+        {
+            fieldScroll = GUILayout.BeginScrollView(fieldScroll, GUILayout.Height(400));
+
+            if (selected < 0)
+            {
+                GUILayout.Label("No comets defined. Add a body on the left.");
+                GUILayout.EndScrollView();
+                return;
+            }
+
+            StellarEffects.Comets.CometDefinition c = comets[selected];
+
+            c.Draw = GUILayout.Toggle(c.Draw, "draw");
+            c.Radius = Row("radius", c.Radius, 0f, 1e9f, false);
+            c.Brightness = Row("brightness", c.Brightness, 0f, 20f, 0f, CometLimits.BrightnessMax);
+            c.ComaSize = Row("comaSize", c.ComaSize, 0.2f, 200f, CometLimits.ComaSizeMin, CometLimits.ComaSizeMax);
+            c.ComaTemperature = Row("comaTemperature", c.ComaTemperature, 2000f, 100000f, 1000f, CometLimits.ComaTemperatureMax);
+            c.ColorSaturation = Row("colorSaturation", c.ColorSaturation, 0f, 10f, 0f, CometLimits.ColorSaturationMax);
+            c.Glow = Row("glow", c.Glow, 0f, 50f, 0f, CometLimits.GlowMax);
+            c.FlowSpeed = Row("flowSpeed", c.FlowSpeed, 0f, 2000f, 0f, CometLimits.FlowSpeedMax);
+            c.Steps = Mathf.RoundToInt(Row("steps", c.Steps, 32f, 4000f, 32f, CometLimits.StepsMax));
+
+            Vector3 normal = c.Normal;
+            normal.x = Row("normal x", normal.x, -1000f, 1000f, -CometLimits.NormalMax, CometLimits.NormalMax);
+            normal.y = Row("normal y", normal.y, -1000f, 1000f, -CometLimits.NormalMax, CometLimits.NormalMax);
+            normal.z = Row("normal z", normal.z, -1000f, 1000f, -CometLimits.NormalMax, CometLimits.NormalMax);
+            c.Normal = normal;
+
+            c.HideBody = GUILayout.Toggle(c.HideBody, "hideBody");
+            c.AutoDirection = GUILayout.Toggle(c.AutoDirection, "autoDirection");
+
+            DrawCometTail("ion", c.Ion, false);
+            DrawCometTail("dust", c.Dust, true);
+
+            c.Clamp();
+
+            GUILayout.EndScrollView();
+        }
+
+        private void DrawCometTail(string name, CometTail tail, bool dust)
+        {
+            rowPrefix = name + ".";
+
+            GUILayout.Label(name);
+
+            tail.Brightness = Row("brightness", tail.Brightness, 0f, 20f, 0f, CometLimits.TailBrightnessMax);
+            tail.Length = Row("length", tail.Length, 1f, 20000f, CometLimits.TailLengthMin, CometLimits.TailLengthMax);
+            tail.Width = Row("width", tail.Width, 0.05f, 500f, CometLimits.TailWidthMin, CometLimits.TailWidthMax);
+            tail.Spread = Row("spread", tail.Spread, 0f, 5f, 0f, CometLimits.TailSpreadMax);
+            if (dust) tail.Curve = Row("curve", tail.Curve, 0f, 5f, 0f, CometLimits.TailCurveMax);
+            tail.Temperature = Row("temperature", tail.Temperature, 2000f, 100000f, 1000f, CometLimits.TailTemperatureMax);
+            tail.ColorSaturation = Row("colorSaturation", tail.ColorSaturation, 0f, 10f, 0f, CometLimits.ColorSaturationMax);
+            tail.Density = Row("density", tail.Density, 0f, 20f, 0f, CometLimits.TailDensityMax);
+            tail.Striation = Row("striation", tail.Striation, 0f, 2f, 0f, CometLimits.TailStriationMax);
+            tail.Turbulence = Row("turbulence", tail.Turbulence, 0f, 10f, 0f, CometLimits.TailTurbulenceMax);
+            tail.Decay = Row("decay", tail.Decay, 0.01f, 5f, CometLimits.TailDecayMin, CometLimits.TailDecayMax);
+            tail.Seed = Row("seed", tail.Seed, 0f, 1000f, -CometLimits.TailSeedMax, CometLimits.TailSeedMax);
+
+            rowPrefix = "";
+        }
+
         private float Row(string label, float value, float min, float max, bool slider = true)
         {
             return Row(label, value, min, max, min, max, slider);
@@ -491,6 +612,30 @@ namespace StellarEffects.UI
             confirmRemove = false;
             buffers.Clear();
             status = "";
+        }
+
+        private void AddComet()
+        {
+            StellarEffects.Comets.CometManager manager = StellarEffects.Comets.CometManager.Instance;
+            string name = newBody.Trim();
+            if (manager == null || name.Length == 0) return;
+
+            if (manager.Comets.Exists(c => c.Body == name))
+            {
+                status = name + " already has a comet.";
+                return;
+            }
+
+            if (FlightGlobals.Bodies == null || !FlightGlobals.Bodies.Exists(b => b.bodyName == name))
+            {
+                status = "No body named " + name + ".";
+                return;
+            }
+
+            manager.Add(name);
+            Select(manager.Comets.Count - 1);
+            newBody = "";
+            status = "Added " + name + ". Save to keep it.";
         }
 
         private void AddBody()
@@ -557,6 +702,31 @@ namespace StellarEffects.UI
             Select(manager.Definitions.Count - 1);
             newBody = "";
             status = "Added " + name + ". Save to keep it.";
+        }
+
+        private void RemoveComet(StellarEffects.Comets.CometDefinition comet)
+        {
+            if (!confirmRemove)
+            {
+                confirmRemove = true;
+                status = "Click again to remove " + comet.Body + " and delete its config entry.";
+                return;
+            }
+
+            confirmRemove = false;
+
+            try
+            {
+                CometConfigWriter.Delete(comet);
+                StellarEffects.Comets.CometManager.Instance.Remove(comet);
+                buffers.Clear();
+                status = "Removed " + comet.Body + ".";
+            }
+            catch (System.Exception e)
+            {
+                status = "Remove failed: " + e.Message;
+                Debug.LogError("[StellarEffects] Could not remove comet " + comet.Body + ": " + e);
+            }
         }
 
         private void Remove(BlackHoleDefinition hole)
@@ -634,6 +804,22 @@ namespace StellarEffects.UI
             }
         }
 
+        private void SaveComet(StellarEffects.Comets.CometDefinition comet)
+        {
+            confirmRemove = false;
+
+            try
+            {
+                string path = CometConfigWriter.Save(comet);
+                status = "Saved " + path.Replace(KSPUtil.ApplicationRootPath, "");
+            }
+            catch (System.Exception e)
+            {
+                status = "Save failed: " + e.Message;
+                Debug.LogError("[StellarEffects] Could not save comet " + comet.Body + ": " + e);
+            }
+        }
+
         private void Save(BlackHoleDefinition hole)
         {
             confirmRemove = false;
@@ -682,6 +868,14 @@ namespace StellarEffects.UI
             }
         }
 
+        private void ResetComet(StellarEffects.Comets.CometDefinition comet)
+        {
+            confirmRemove = false;
+            comet.Revert();
+            buffers.Clear();
+            status = "Reset " + comet.Body + " to its saved config.";
+        }
+
         private void Reset(BlackHoleDefinition hole)
         {
             confirmRemove = false;
@@ -727,4 +921,4 @@ namespace StellarEffects.UI
             return v;
         }
     }
-}
+}

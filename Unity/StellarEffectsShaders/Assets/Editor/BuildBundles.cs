@@ -20,7 +20,8 @@ namespace StellarEffects.Editor
                 {
                     "Assets/Shaders/BlackHole.shader",
                     "Assets/Shaders/Quasar.shader",
-                    "Assets/Shaders/Nebula.shader"
+                    "Assets/Shaders/Nebula.shader",
+                    "Assets/Shaders/Comet.shader"
                 }
             };
 
