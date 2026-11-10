@@ -83,6 +83,12 @@ namespace StellarEffects.Blackholes
                 CelestialBody body = hole.Target;
                 if (body == null || body.scaledBody == null) continue;
 
+                if (!hole.Draw)
+                {
+                    SetHidden(hole, false);
+                    continue;
+                }
+
                 float horizonRadius = (hole.HorizonRadius > 0f ? hole.HorizonRadius : (float)body.Radius) * inverseScale;
                 Vector3 toCenter = body.scaledBody.transform.position - view.position;
 

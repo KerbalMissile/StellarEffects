@@ -84,6 +84,12 @@ namespace StellarEffects.Quasars
                 CelestialBody body = quasar.Target;
                 if (body == null || body.scaledBody == null) continue;
 
+                if (!quasar.Draw)
+                {
+                    SetHidden(quasar, false);
+                    continue;
+                }
+
                 float coreBrightness = quasar.CoreSize > 0f && quasar.CoreBrightness > 0f ? quasar.CoreBrightness : 0f;
                 float glare = quasar.Glare > 0f ? quasar.Glare : 0f;
                 float torusDensity = quasar.TorusDensity > 0f && quasar.TorusOuter > quasar.TorusInner * 0.9f ? quasar.TorusDensity : 0f;

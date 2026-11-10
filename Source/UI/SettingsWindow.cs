@@ -269,6 +269,7 @@ namespace StellarEffects.UI
 
             BlackHoleDefinition h = holes[selected];
 
+            h.Draw = GUILayout.Toggle(h.Draw, "draw");
             h.HorizonRadius = Row("horizonRadius", h.HorizonRadius, 0f, 1e9f, false);
             h.Temperature = Row("temperature", h.Temperature, 1000f, 40000f);
             h.Brightness = Row("brightness", h.Brightness, 0f, 20f);
@@ -320,6 +321,7 @@ namespace StellarEffects.UI
 
             QuasarDefinition q = quasars[selected];
 
+            q.Draw = GUILayout.Toggle(q.Draw, "draw");
             q.Radius = Row("radius", q.Radius, 0f, 1e9f, false);
             q.CoreBrightness = Row("coreBrightness", q.CoreBrightness, 0f, 30f, 0f, QuasarLimits.CoreBrightnessMax);
             q.CoreSize = Row("coreSize", q.CoreSize, 0.5f, 100f, QuasarLimits.CoreSizeMin, QuasarLimits.CoreSizeMax);
@@ -376,6 +378,7 @@ namespace StellarEffects.UI
 
             NebulaDefinition n = nebulae[selected];
 
+            n.Draw = GUILayout.Toggle(n.Draw, "draw");
             n.Radius = Row("radius", n.Radius, 0f, 1e9f, false);
             n.Size = Row("size", n.Size, 1f, 1e5f, NebulaLimits.SizeMin, NebulaLimits.SizeMax, false);
             n.Brightness = Row("brightness", n.Brightness, 0f, 10f, 0f, NebulaLimits.BrightnessMax);

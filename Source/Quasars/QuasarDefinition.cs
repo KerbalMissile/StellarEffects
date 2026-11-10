@@ -75,6 +75,7 @@ namespace StellarEffects.Quasars
 
         public CelestialBody Target;
         public bool Missing;
+        public bool Draw = true;
         public string SourcePath;
 
         private QuasarDefinition baseline;

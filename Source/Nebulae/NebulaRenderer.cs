@@ -162,6 +162,12 @@ namespace StellarEffects.Nebulae
                 CelestialBody body = nebula.Target;
                 if (body == null || body.scaledBody == null) continue;
 
+                if (!nebula.Draw)
+                {
+                    seenBodies.Add(body);
+                    continue;
+                }
+
                 float brightness = nebula.Brightness > 0f && nebula.GasCount > 0 ? nebula.Brightness : 0f;
 
                 if (brightness <= 0f)
