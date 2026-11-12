@@ -1,4 +1,5 @@
 # StellarEffects
+
 A volumetric effects mod for anything in space, planets, stars, black holes, etc. Inspired by KSPVE, except done from scratch without bloat.
 
 ---
@@ -9,11 +10,13 @@ A volumetric effects mod for anything in space, planets, stars, black holes, etc
 - Volumetric Quasar Torus' & Quasar Jets
 - In-game config editor / creator (Ctrl + Alt + V to open)
 - Volumetric Nebulae
+- Evaporating Planet Effect
+- Volumetric Comet Tails
+- Volumetric Neutron Star Effects
 
 **Planned Features:**
 
 - Volumetric Aurorae
-- Evaporating Planet Effect
 
 ---
 
