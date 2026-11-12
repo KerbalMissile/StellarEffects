@@ -1,9 +1,9 @@
 ManifestFileVersion: 0
-CRC: 287861281
+CRC: 2768285266
 Hashes:
   AssetFileHash:
     serializedVersion: 2
-    Hash: 8b83694a15a96a44bf35a779b043c63c
+    Hash: 2e923cda8563c6b45261b25e76b82657
   TypeTreeHash:
     serializedVersion: 2
     Hash: 55d48f4ad9c3b13330b9eb5ee5686477
@@ -17,5 +17,6 @@ Assets:
 - Assets/Shaders/BlackHole.shader
 - Assets/Shaders/Quasar.shader
 - Assets/Shaders/Nebula.shader
+- Assets/Shaders/NeutronStar.shader
 - Assets/Shaders/Comet.shader
 Dependencies: []

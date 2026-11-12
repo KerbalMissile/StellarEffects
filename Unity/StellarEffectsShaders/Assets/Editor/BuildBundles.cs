@@ -22,7 +22,8 @@ namespace StellarEffects.Editor
                     "Assets/Shaders/Quasar.shader",
                     "Assets/Shaders/Nebula.shader",
                     "Assets/Shaders/Comet.shader",
-                    "Assets/Shaders/Evaporation.shader"
+                    "Assets/Shaders/Evaporation.shader",
+                    "Assets/Shaders/NeutronStar.shader"
                 }
             };
 

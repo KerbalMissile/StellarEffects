@@ -5,6 +5,7 @@ using StellarEffects.Blackholes;
 using StellarEffects.Comets;
 using StellarEffects.Evaporation;
 using StellarEffects.Nebulae;
+using StellarEffects.NeutronStars;
 using StellarEffects.Quasars;
 using UnityEngine;
 
@@ -77,6 +78,7 @@ namespace StellarEffects.UI
             if (GUILayout.Toggle(mode == 2, "Nebulae", GUI.skin.button) && mode != 2) SetMode(2);
             if (GUILayout.Toggle(mode == 3, "Comets", GUI.skin.button) && mode != 3) SetMode(3);
             if (GUILayout.Toggle(mode == 4, "Evaporation", GUI.skin.button) && mode != 4) SetMode(4);
+            if (GUILayout.Toggle(mode == 5, "Neutron stars", GUI.skin.button) && mode != 5) SetMode(5);
             GUILayout.EndHorizontal();
 
             GUILayout.BeginHorizontal();
@@ -98,6 +100,13 @@ namespace StellarEffects.UI
             if (mode == 4)
             {
                 DrawEvaporationTab();
+                GUI.DragWindow(new Rect(0, 0, 10000, 22));
+                return;
+            }
+
+            if (mode == 5)
+            {
+                DrawNeutronStarTab();
                 GUI.DragWindow(new Rect(0, 0, 10000, 22));
                 return;
             }
@@ -1100,6 +1109,183 @@ namespace StellarEffects.UI
             planet.Revert();
             buffers.Clear();
             status = "Reset " + planet.Body + " to its saved config.";
+        }
+
+        private void DrawNeutronStarTab()
+        {
+            NeutronStarManager manager = NeutronStarManager.Instance;
+            if (manager == null)
+            {
+                GUILayout.Label("Neutron stars are not loaded.");
+                return;
+            }
+
+            if (!manager.ShaderReady)
+                GUILayout.Label("Neutron star shader is missing from stellareffects.bundle. Neutron stars will not render. See KSP.log.");
+
+            List<NeutronStarDefinition> stars = manager.Stars;
+            selected = stars.Count == 0 ? -1 : Mathf.Clamp(selected, 0, stars.Count - 1);
+
+            GUILayout.BeginHorizontal();
+            DrawNeutronStarList(stars);
+            DrawNeutronStarEditor(stars);
+            GUILayout.EndHorizontal();
+
+            GUILayout.BeginHorizontal();
+            GUI.enabled = selected >= 0;
+            if (GUILayout.Button("Save")) SaveNeutronStar(stars[selected]);
+            if (GUILayout.Button("Reset Config")) ResetNeutronStar(stars[selected]);
+            if (GUILayout.Button(confirmRemove ? "Click again to remove" : "Remove")) RemoveNeutronStar(stars[selected]);
+            GUI.enabled = true;
+            GUILayout.EndHorizontal();
+
+            GUILayout.Label(status);
+        }
+
+        private void DrawNeutronStarList(List<NeutronStarDefinition> stars)
+        {
+            GUILayout.BeginVertical(GUILayout.Width(ListWidth));
+
+            listScroll = GUILayout.BeginScrollView(listScroll, GUILayout.Height(320));
+            for (int i = 0; i < stars.Count; i++)
+            {
+                bool on = GUILayout.Toggle(selected == i, stars[i].Body, GUI.skin.button);
+                if (on && selected != i) Select(i);
+            }
+            GUILayout.EndScrollView();
+
+            GUILayout.Label("New body");
+            newBody = GUILayout.TextField(newBody);
+            if (GUILayout.Button("Add")) AddNeutronStar();
+
+            GUILayout.EndVertical();
+        }
+
+        private void DrawNeutronStarEditor(List<NeutronStarDefinition> stars)
+        {
+            fieldScroll = GUILayout.BeginScrollView(fieldScroll, GUILayout.Height(400));
+
+            if (selected < 0)
+            {
+                GUILayout.Label("No neutron stars defined. Add a body on the left.");
+                GUILayout.EndScrollView();
+                return;
+            }
+
+            NeutronStarDefinition s = stars[selected];
+
+            s.Draw = GUILayout.Toggle(s.Draw, "draw");
+            s.Radius = Row("radius", s.Radius, 0f, 1e9f, false);
+            s.CoreBrightness = Row("coreBrightness", s.CoreBrightness, 0f, 30f, 0f, NeutronStarLimits.CoreBrightnessMax);
+            s.CoreColor = ColorRow("coreColor", s.CoreColor);
+            s.PolarCap = Row("polarCap", s.PolarCap, 0f, 20f, 0f, NeutronStarLimits.PolarCapMax);
+            s.Glare = Row("glare", s.Glare, 0f, 10f, 0f, NeutronStarLimits.GlareMax);
+            s.GlareSize = Row("glareSize", s.GlareSize, 2f, 500f, 2f, float.MaxValue, true, true);
+            s.SpinRate = Row("spinRate", s.SpinRate, 0f, 20f, 0f, NeutronStarLimits.SpinRateMax);
+            s.Tilt = Row("tilt", s.Tilt, 0f, 90f, 0f, NeutronStarLimits.TiltMax);
+            s.Steps = Mathf.RoundToInt(Row("steps", s.Steps, 32f, 600f, 32f, NeutronStarLimits.StepsMax));
+            s.HideBody = GUILayout.Toggle(s.HideBody, "hideBody");
+            s.Spin = GUILayout.Toggle(s.Spin < 0f, "reverse spin") ? -1f : 1f;
+
+            Vector3 normal = s.Normal;
+            normal.x = Row("normal x", normal.x, -20f, 20f, -NeutronStarLimits.NormalMax, NeutronStarLimits.NormalMax);
+            normal.y = Row("normal y", normal.y, -20f, 20f, -NeutronStarLimits.NormalMax, NeutronStarLimits.NormalMax);
+            normal.z = Row("normal z", normal.z, -20f, 20f, -NeutronStarLimits.NormalMax, NeutronStarLimits.NormalMax);
+            s.Normal = normal;
+
+            GUILayout.Label("beam");
+            s.BeamBrightness = Row("brightness", s.BeamBrightness, 0f, 50f, 0f, NeutronStarLimits.BeamBrightnessMax);
+            s.BeamLength = Row("length", s.BeamLength, 2f, 5000f, 2f, float.MaxValue, true, true);
+            s.BeamWidth = Row("width", s.BeamWidth, 0.05f, 100f, NeutronStarLimits.BeamWidthMin, NeutronStarLimits.BeamWidthMax);
+            s.BeamSpread = Row("spread", s.BeamSpread, 0f, 1.5f, 0f, NeutronStarLimits.BeamSpreadMax);
+            s.BeamColor = ColorRow("color", s.BeamColor);
+            s.Beaming = Row("beaming", s.Beaming, 0f, 20f, 0f, NeutronStarLimits.BeamingMax);
+            s.BeamTurbulence = Row("turbulence", s.BeamTurbulence, 0f, 1f);
+
+            GUILayout.Label("field");
+            s.FieldBrightness = Row("brightness", s.FieldBrightness, 0f, 20f, 0f, NeutronStarLimits.FieldBrightnessMax);
+            s.FieldExtent = Row("extent", s.FieldExtent, NeutronStarLimits.FieldExtentMin, 500f, NeutronStarLimits.FieldExtentMin, float.MaxValue, true, true);
+            s.FieldShells = Mathf.RoundToInt(Row("shells", s.FieldShells, 1f, NeutronStarLimits.FieldShellsMax, 1f, NeutronStarLimits.FieldShellsMax));
+            s.FieldWidth = Row("width", s.FieldWidth, NeutronStarLimits.FieldWidthMin, NeutronStarLimits.FieldWidthMax, NeutronStarLimits.FieldWidthMin, NeutronStarLimits.FieldWidthMax);
+            s.FieldAzimuth = Mathf.RoundToInt(Row("azimuth", s.FieldAzimuth, 0f, NeutronStarLimits.FieldAzimuthMax, 0f, NeutronStarLimits.FieldAzimuthMax));
+            s.FieldColor = ColorRow("color", s.FieldColor);
+
+            s.Clamp();
+
+            GUILayout.EndScrollView();
+        }
+
+        private void AddNeutronStar()
+        {
+            NeutronStarManager manager = NeutronStarManager.Instance;
+            string name = newBody.Trim();
+            if (manager == null || name.Length == 0) return;
+
+            if (manager.Stars.Exists(s => s.Body == name))
+            {
+                status = name + " already has a neutron star.";
+                return;
+            }
+
+            if (FlightGlobals.Bodies == null || !FlightGlobals.Bodies.Exists(b => b.bodyName == name))
+            {
+                status = "No body named " + name + ".";
+                return;
+            }
+
+            manager.Add(name);
+            Select(manager.Stars.Count - 1);
+            newBody = "";
+            status = "Added " + name + ". Save to keep it.";
+        }
+
+        private void RemoveNeutronStar(NeutronStarDefinition star)
+        {
+            if (!confirmRemove)
+            {
+                confirmRemove = true;
+                status = "Click again to remove " + star.Body + " and delete its config entry.";
+                return;
+            }
+
+            confirmRemove = false;
+
+            try
+            {
+                NeutronStarConfigWriter.Delete(star);
+                NeutronStarManager.Instance.Remove(star);
+                buffers.Clear();
+                status = "Removed " + star.Body + ".";
+            }
+            catch (System.Exception e)
+            {
+                status = "Remove failed: " + e.Message;
+                Debug.LogError("[StellarEffects] Could not remove neutron star " + star.Body + ": " + e);
+            }
+        }
+
+        private void SaveNeutronStar(NeutronStarDefinition star)
+        {
+            confirmRemove = false;
+
+            try
+            {
+                string path = NeutronStarConfigWriter.Save(star);
+                status = "Saved " + path.Replace(KSPUtil.ApplicationRootPath, "");
+            }
+            catch (System.Exception e)
+            {
+                status = "Save failed: " + e.Message;
+                Debug.LogError("[StellarEffects] Could not save neutron star " + star.Body + ": " + e);
+            }
+        }
+
+        private void ResetNeutronStar(NeutronStarDefinition star)
+        {
+            confirmRemove = false;
+            star.Revert();
+            buffers.Clear();
+            status = "Reset " + star.Body + " to its saved config.";
         }
 
         private static string Format(float value)
