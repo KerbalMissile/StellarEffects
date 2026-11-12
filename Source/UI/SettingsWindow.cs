@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Reflection;
 using StellarEffects.Blackholes;
 using StellarEffects.Comets;
+using StellarEffects.Evaporation;
 using StellarEffects.Nebulae;
 using StellarEffects.Quasars;
 using UnityEngine;
@@ -75,6 +76,7 @@ namespace StellarEffects.UI
             if (GUILayout.Toggle(mode == 1, "Quasars", GUI.skin.button) && mode != 1) SetMode(1);
             if (GUILayout.Toggle(mode == 2, "Nebulae", GUI.skin.button) && mode != 2) SetMode(2);
             if (GUILayout.Toggle(mode == 3, "Comets", GUI.skin.button) && mode != 3) SetMode(3);
+            if (GUILayout.Toggle(mode == 4, "Evaporation", GUI.skin.button) && mode != 4) SetMode(4);
             GUILayout.EndHorizontal();
 
             GUILayout.BeginHorizontal();
@@ -89,6 +91,13 @@ namespace StellarEffects.UI
             if (mode == 1)
             {
                 DrawQuasarTab();
+                GUI.DragWindow(new Rect(0, 0, 10000, 22));
+                return;
+            }
+
+            if (mode == 4)
+            {
+                DrawEvaporationTab();
                 GUI.DragWindow(new Rect(0, 0, 10000, 22));
                 return;
             }
@@ -905,6 +914,194 @@ namespace StellarEffects.UI
             status = "Reset " + nebula.Body + " to its saved config.";
         }
 
+        private void DrawEvaporationTab()
+        {
+            EvaporationManager manager = EvaporationManager.Instance;
+            if (manager == null)
+            {
+                GUILayout.Label("Evaporating planets are not loaded.");
+                return;
+            }
+
+            if (!manager.ShaderReady)
+                GUILayout.Label("Evaporation shader is missing from stellareffects.bundle. Evaporating planets will not render. See KSP.log.");
+
+            List<EvaporationDefinition> planets = manager.Planets;
+            selected = planets.Count == 0 ? -1 : Mathf.Clamp(selected, 0, planets.Count - 1);
+
+            GUILayout.BeginHorizontal();
+            DrawEvaporationList(planets);
+            DrawEvaporationEditor(planets);
+            GUILayout.EndHorizontal();
+
+            GUILayout.BeginHorizontal();
+            GUI.enabled = selected >= 0;
+            if (GUILayout.Button("Save")) SaveEvaporation(planets[selected]);
+            if (GUILayout.Button("Reset Config")) ResetEvaporation(planets[selected]);
+            if (GUILayout.Button(confirmRemove ? "Click again to remove" : "Remove")) RemoveEvaporation(planets[selected]);
+            GUI.enabled = true;
+            GUILayout.EndHorizontal();
+
+            GUILayout.Label(status);
+        }
+
+        private void DrawEvaporationList(List<EvaporationDefinition> planets)
+        {
+            GUILayout.BeginVertical(GUILayout.Width(ListWidth));
+
+            listScroll = GUILayout.BeginScrollView(listScroll, GUILayout.Height(320));
+            for (int i = 0; i < planets.Count; i++)
+            {
+                bool on = GUILayout.Toggle(selected == i, planets[i].Body, GUI.skin.button);
+                if (on && selected != i) Select(i);
+            }
+            GUILayout.EndScrollView();
+
+            GUILayout.Label("New body");
+            newBody = GUILayout.TextField(newBody);
+            if (GUILayout.Button("Add")) AddEvaporation();
+
+            GUILayout.EndVertical();
+        }
+
+        private void DrawEvaporationEditor(List<EvaporationDefinition> planets)
+        {
+            fieldScroll = GUILayout.BeginScrollView(fieldScroll, GUILayout.Height(400));
+
+            if (selected < 0)
+            {
+                GUILayout.Label("No evaporating planets defined. Add a body on the left.");
+                GUILayout.EndScrollView();
+                return;
+            }
+
+            EvaporationDefinition p = planets[selected];
+
+            p.Draw = GUILayout.Toggle(p.Draw, "draw");
+            p.Radius = Row("radius", p.Radius, 0f, 1e9f, false);
+            p.Brightness = Row("brightness", p.Brightness, 0f, 20f, 0f, EvaporationLimits.BrightnessMax);
+            p.ComaSize = Row("comaSize", p.ComaSize, 0.2f, 200f, EvaporationLimits.ComaSizeMin, EvaporationLimits.ComaSizeMax);
+            p.ComaColor = ColorRow("comaColor", p.ComaColor);
+            p.Glow = Row("glow", p.Glow, 0f, 50f, 0f, EvaporationLimits.GlowMax);
+            p.FlowSpeed = Row("flowSpeed", p.FlowSpeed, 0f, 2000f, 0f, EvaporationLimits.FlowSpeedMax);
+            p.Steps = Mathf.RoundToInt(Row("steps", p.Steps, 32f, 4000f, 32f, EvaporationLimits.StepsMax));
+            p.HideBody = GUILayout.Toggle(p.HideBody, "hideBody");
+
+            rowPrefix = "tail.";
+
+            GUILayout.Label("tail");
+
+            p.TailBrightness = Row("brightness", p.TailBrightness, 0f, 20f, 0f, EvaporationLimits.TailBrightnessMax);
+            p.TailLength = Row("length", p.TailLength, 1f, 20000f, EvaporationLimits.TailLengthMin, EvaporationLimits.TailLengthMax);
+            p.TailWidth = Row("width", p.TailWidth, 0.05f, 500f, EvaporationLimits.TailWidthMin, EvaporationLimits.TailWidthMax);
+            p.TailSpread = Row("spread", p.TailSpread, 0f, 5f, 0f, EvaporationLimits.TailSpreadMax);
+            p.TailCurve = Row("curve", p.TailCurve, 0f, 3f, 0f, EvaporationLimits.TailCurveMax);
+            p.TailYaw = Row("yaw", p.TailYaw, -180f, 180f, -EvaporationLimits.TailAngleMax, EvaporationLimits.TailAngleMax);
+            p.TailPitch = Row("pitch", p.TailPitch, -180f, 180f, -EvaporationLimits.TailAngleMax, EvaporationLimits.TailAngleMax);
+            p.TailColor = ColorRow("color", p.TailColor);
+            p.TailDensity = Row("density", p.TailDensity, 0f, 20f, 0f, EvaporationLimits.TailDensityMax);
+            p.TailStriation = Row("striation", p.TailStriation, 0f, 2f, 0f, EvaporationLimits.TailStriationMax);
+            p.TailTurbulence = Row("turbulence", p.TailTurbulence, 0f, 10f, 0f, EvaporationLimits.TailTurbulenceMax);
+            p.TailDecay = Row("decay", p.TailDecay, 0.01f, 5f, EvaporationLimits.TailDecayMin, EvaporationLimits.TailDecayMax);
+            p.TailSeed = Row("seed", p.TailSeed, 0f, 1000f, -EvaporationLimits.TailSeedMax, EvaporationLimits.TailSeedMax);
+
+            rowPrefix = "";
+
+            p.Clamp();
+
+            GUILayout.EndScrollView();
+        }
+
+        private Vector3 ColorRow(string label, Vector3 color)
+        {
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(label, GUILayout.Width(LabelWidth));
+            Rect swatch = GUILayoutUtility.GetRect(SliderWidth + BoxWidth, 18f);
+            Color previous = GUI.color;
+            GUI.color = new Color(color.x, color.y, color.z, 1f);
+            GUI.DrawTexture(swatch, Texture2D.whiteTexture);
+            GUI.color = previous;
+            GUILayout.EndHorizontal();
+
+            color.x = Row(label + " R", color.x, 0f, 1f);
+            color.y = Row(label + " G", color.y, 0f, 1f);
+            color.z = Row(label + " B", color.z, 0f, 1f);
+            return color;
+        }
+
+        private void AddEvaporation()
+        {
+            EvaporationManager manager = EvaporationManager.Instance;
+            string name = newBody.Trim();
+            if (manager == null || name.Length == 0) return;
+
+            if (manager.Planets.Exists(p => p.Body == name))
+            {
+                status = name + " already has an evaporation effect.";
+                return;
+            }
+
+            if (FlightGlobals.Bodies == null || !FlightGlobals.Bodies.Exists(b => b.bodyName == name))
+            {
+                status = "No body named " + name + ".";
+                return;
+            }
+
+            manager.Add(name);
+            Select(manager.Planets.Count - 1);
+            newBody = "";
+            status = "Added " + name + ". Save to keep it.";
+        }
+
+        private void RemoveEvaporation(EvaporationDefinition planet)
+        {
+            if (!confirmRemove)
+            {
+                confirmRemove = true;
+                status = "Click again to remove " + planet.Body + " and delete its config entry.";
+                return;
+            }
+
+            confirmRemove = false;
+
+            try
+            {
+                EvaporationConfigWriter.Delete(planet);
+                EvaporationManager.Instance.Remove(planet);
+                buffers.Clear();
+                status = "Removed " + planet.Body + ".";
+            }
+            catch (System.Exception e)
+            {
+                status = "Remove failed: " + e.Message;
+                Debug.LogError("[StellarEffects] Could not remove evaporation " + planet.Body + ": " + e);
+            }
+        }
+
+        private void SaveEvaporation(EvaporationDefinition planet)
+        {
+            confirmRemove = false;
+
+            try
+            {
+                string path = EvaporationConfigWriter.Save(planet);
+                status = "Saved " + path.Replace(KSPUtil.ApplicationRootPath, "");
+            }
+            catch (System.Exception e)
+            {
+                status = "Save failed: " + e.Message;
+                Debug.LogError("[StellarEffects] Could not save evaporation " + planet.Body + ": " + e);
+            }
+        }
+
+        private void ResetEvaporation(EvaporationDefinition planet)
+        {
+            confirmRemove = false;
+            planet.Revert();
+            buffers.Clear();
+            status = "Reset " + planet.Body + " to its saved config.";
+        }
+
         private static string Format(float value)
         {
             return value.ToString("0.####", CultureInfo.InvariantCulture);
@@ -926,4 +1123,4 @@ namespace StellarEffects.UI
             return v;
         }
     }
-}
+}
