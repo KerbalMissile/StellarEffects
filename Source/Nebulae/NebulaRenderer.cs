@@ -224,7 +224,7 @@ namespace StellarEffects.Nebulae
                 float surfaceDistance = Mathf.Max(vis.ToCenter.magnitude / vis.ScaledRadius - 1f, 0f);
                 float steps = StellarQuality.Steps(nebula.Steps, surfaceDistance, effectBounds);
 
-                Vector3 normal = ((Vector3)(Planetarium.Rotation * (Vector3d)nebula.Normal)).normalized;
+                Vector3 normal = nebula.Normal.normalized;
                 float spinSign = nebula.Spin < 0f ? -1f : 1f;
                 float rotation = spinSign * (float)(nebula.RotationSpeed * 0.02 * time % (2.0 * Mathf.PI));
 

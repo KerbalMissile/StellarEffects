@@ -77,7 +77,6 @@ Shader "Hidden/StellarEffects/BlackHole"
                 return lerp(a, b, f.z);
             }
 
-            // Cheap 1D value noise (2 hashes instead of 8); used for the radial ring modulation.
             float Noise1(float x)
             {
                 float i = floor(x);
@@ -248,8 +247,6 @@ Shader "Hidden/StellarEffects/BlackHole"
                 float w0 = 1.0 - abs(2.0 * f0 - 1.0);
                 float w1 = 1.0 - w0;
 
-                // Samples seen through already-dense material contribute little, so they
-                // don't need full noise detail. Big win when the camera is inside the disk.
                 float detail = _SE_DiskB.y;
                 if (transmittance < 0.3) detail = min(detail, 1.0);
                 if (transmittance < 0.1) detail = 0.0;
@@ -432,8 +429,6 @@ Shader "Hidden/StellarEffects/BlackHole"
                     }
                     dt = max(min(dt, 0.08 * r2 * invB), 0.004);
                     bool inDiskLayer = nearPlane < 5.0 * hs * r && r < diskReach;
-                    // In-disk step cap grows with distance from the camera: far samples are
-                    // below pixel size anyway, so coarser steps cost nothing visible.
                     if (inDiskLayer) dt = min(dt, 0.25 * (1.0 + 0.1 * traveled));
                     else dt = max(dt, 0.7 * max(tExit - traveled, 0.0) / max((float)(maxSteps - iter), 1.0));
                     dt *= _SE_DiskB.z;
