@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Reflection;
+using StellarEffects.Auroras;
 using StellarEffects.Blackholes;
 using StellarEffects.Comets;
 using StellarEffects.Evaporation;
@@ -79,6 +80,7 @@ namespace StellarEffects.UI
             if (GUILayout.Toggle(mode == 3, "Comets", GUI.skin.button) && mode != 3) SetMode(3);
             if (GUILayout.Toggle(mode == 4, "Evaporation", GUI.skin.button) && mode != 4) SetMode(4);
             if (GUILayout.Toggle(mode == 5, "Neutron stars", GUI.skin.button) && mode != 5) SetMode(5);
+            if (GUILayout.Toggle(mode == 6, "Aurora", GUI.skin.button) && mode != 6) SetMode(6);
             GUILayout.EndHorizontal();
 
             GUILayout.BeginHorizontal();
@@ -89,6 +91,13 @@ namespace StellarEffects.UI
                     StellarQuality.Current = preset;
             }
             GUILayout.EndHorizontal();
+
+            if (mode == 6)
+            {
+                DrawAuroraTab();
+                GUI.DragWindow(new Rect(0, 0, 10000, 22));
+                return;
+            }
 
             if (mode == 1)
             {
@@ -1286,6 +1295,172 @@ namespace StellarEffects.UI
             star.Revert();
             buffers.Clear();
             status = "Reset " + star.Body + " to its saved config.";
+        }
+
+        private void DrawAuroraTab()
+        {
+            AuroraManager manager = AuroraManager.Instance;
+            if (manager == null)
+            {
+                GUILayout.Label("Auroras are not loaded.");
+                return;
+            }
+
+            if (!manager.ShaderReady)
+                GUILayout.Label("Aurora shader is missing from stellareffects.bundle. Auroras will not render. See KSP.log.");
+
+            List<AuroraDefinition> auroras = manager.Auroras;
+            selected = auroras.Count == 0 ? -1 : Mathf.Clamp(selected, 0, auroras.Count - 1);
+
+            GUILayout.BeginHorizontal();
+            DrawAuroraList(auroras);
+            DrawAuroraEditor(auroras);
+            GUILayout.EndHorizontal();
+
+            GUILayout.BeginHorizontal();
+            GUI.enabled = selected >= 0;
+            if (GUILayout.Button("Save")) SaveAurora(auroras[selected]);
+            if (GUILayout.Button("Reset Config")) ResetAurora(auroras[selected]);
+            if (GUILayout.Button(confirmRemove ? "Click again to remove" : "Remove")) RemoveAurora(auroras[selected]);
+            GUI.enabled = true;
+            GUILayout.EndHorizontal();
+
+            GUILayout.Label(status);
+        }
+
+        private void DrawAuroraList(List<AuroraDefinition> auroras)
+        {
+            GUILayout.BeginVertical(GUILayout.Width(ListWidth));
+
+            listScroll = GUILayout.BeginScrollView(listScroll, GUILayout.Height(320));
+            for (int i = 0; i < auroras.Count; i++)
+            {
+                bool on = GUILayout.Toggle(selected == i, auroras[i].Body, GUI.skin.button);
+                if (on && selected != i) Select(i);
+            }
+            GUILayout.EndScrollView();
+
+            GUILayout.Label("New body");
+            newBody = GUILayout.TextField(newBody);
+            if (GUILayout.Button("Add")) AddAurora();
+
+            GUILayout.EndVertical();
+        }
+
+        private void DrawAuroraEditor(List<AuroraDefinition> auroras)
+        {
+            fieldScroll = GUILayout.BeginScrollView(fieldScroll, GUILayout.Height(400));
+
+            if (selected < 0)
+            {
+                GUILayout.Label("No auroras defined. Add a body on the left.");
+                GUILayout.EndScrollView();
+                return;
+            }
+
+            AuroraDefinition a = auroras[selected];
+
+            a.Draw = GUILayout.Toggle(a.Draw, "draw");
+            a.Radius = Row("radius", a.Radius, 0f, 1e9f, 0f, 1e9f, false, true);
+            a.Brightness = Row("brightness", a.Brightness, 0f, 10f, 0f, AuroraLimits.BrightnessMax);
+            a.Latitude = Row("latitude", a.Latitude, 5f, 89f, AuroraLimits.LatitudeMin, AuroraLimits.LatitudeMax);
+            a.Width = Row("width", a.Width, 0.5f, 15f, AuroraLimits.WidthMin, AuroraLimits.WidthMax);
+            a.Wobble = Row("wobble", a.Wobble, 0f, 15f, 0f, AuroraLimits.WobbleMax);
+            a.Altitude = Row("altitude", a.Altitude, 0.001f, 0.1f, AuroraLimits.AltitudeMin, AuroraLimits.AltitudeMax);
+            a.Height = Row("height", a.Height, 0.005f, 0.2f, AuroraLimits.HeightMin, AuroraLimits.HeightMax);
+            a.RayDrop = Row("rayDrop", a.RayDrop, 0f, 0.1f, 0f, AuroraLimits.RayDropMax);
+            a.RayScale = Row("rayScale", a.RayScale, 4f, 120f, AuroraLimits.RayScaleMin, AuroraLimits.RayScaleMax);
+            a.RayContrast = Row("rayContrast", a.RayContrast, 0f, 1f);
+            a.FlowSpeed = Row("flowSpeed", a.FlowSpeed, -2f, 2f, -AuroraLimits.FlowSpeedMax, AuroraLimits.FlowSpeedMax);
+            a.Pulse = Row("pulse", a.Pulse, 0f, 5f, 0f, AuroraLimits.PulseMax);
+            a.Seed = Row("seed", a.Seed, 0f, 100f, -AuroraLimits.SeedMax, AuroraLimits.SeedMax);
+            a.LowColor = ColorRow("lowColor", a.LowColor);
+            a.HighColor = ColorRow("highColor", a.HighColor);
+            a.BaseColor = ColorRow("baseColor", a.BaseColor);
+            a.Steps = Mathf.RoundToInt(Row("steps", a.Steps, 32f, 400f, 32f, AuroraLimits.StepsMax));
+
+            Vector3 normal = a.Normal;
+            normal.x = Row("normal x", normal.x, -20f, 20f, -AuroraLimits.NormalMax, AuroraLimits.NormalMax);
+            normal.y = Row("normal y", normal.y, -20f, 20f, -AuroraLimits.NormalMax, AuroraLimits.NormalMax);
+            normal.z = Row("normal z", normal.z, -20f, 20f, -AuroraLimits.NormalMax, AuroraLimits.NormalMax);
+            a.Normal = normal;
+
+            a.Clamp();
+
+            GUILayout.EndScrollView();
+        }
+
+        private void AddAurora()
+        {
+            AuroraManager manager = AuroraManager.Instance;
+            string name = newBody.Trim();
+            if (manager == null || name.Length == 0) return;
+
+            if (manager.Auroras.Exists(a => a.Body == name))
+            {
+                status = name + " already has an aurora.";
+                return;
+            }
+
+            if (FlightGlobals.Bodies == null || !FlightGlobals.Bodies.Exists(b => b.bodyName == name))
+            {
+                status = "No body named " + name + ".";
+                return;
+            }
+
+            manager.Add(name);
+            Select(manager.Auroras.Count - 1);
+            newBody = "";
+            status = "Added " + name + ". Save to keep it.";
+        }
+
+        private void RemoveAurora(AuroraDefinition aurora)
+        {
+            if (!confirmRemove)
+            {
+                confirmRemove = true;
+                status = "Click again to remove " + aurora.Body + " and delete its config entry.";
+                return;
+            }
+
+            confirmRemove = false;
+
+            try
+            {
+                AuroraConfigWriter.Delete(aurora);
+                AuroraManager.Instance.Remove(aurora);
+                buffers.Clear();
+                status = "Removed " + aurora.Body + ".";
+            }
+            catch (System.Exception e)
+            {
+                status = "Remove failed: " + e.Message;
+                Debug.LogError("[StellarEffects] Could not remove aurora " + aurora.Body + ": " + e);
+            }
+        }
+
+        private void SaveAurora(AuroraDefinition aurora)
+        {
+            confirmRemove = false;
+
+            try
+            {
+                string path = AuroraConfigWriter.Save(aurora);
+                status = "Saved " + path.Replace(KSPUtil.ApplicationRootPath, "");
+            }
+            catch (System.Exception e)
+            {
+                status = "Save failed: " + e.Message;
+                Debug.LogError("[StellarEffects] Could not save aurora " + aurora.Body + ": " + e);
+            }
+        }
+
+        private void ResetAurora(AuroraDefinition aurora)
+        {
+            confirmRemove = false;
+            aurora.Revert();
+            buffers.Clear();
+            status = "Reset " + aurora.Body + " to its saved config.";
         }
 
         private static string Format(float value)

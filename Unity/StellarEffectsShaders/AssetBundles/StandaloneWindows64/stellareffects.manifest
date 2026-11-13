@@ -1,9 +1,9 @@
 ManifestFileVersion: 0
-CRC: 1770067730
+CRC: 4218485732
 Hashes:
   AssetFileHash:
     serializedVersion: 2
-    Hash: 67d4bfac0e19c8dd80f755e905694797
+    Hash: 5892b43f3f375625aa3950dea23325aa
   TypeTreeHash:
     serializedVersion: 2
     Hash: 55d48f4ad9c3b13330b9eb5ee5686477
@@ -13,6 +13,7 @@ ClassTypes:
   Script: {instanceID: 0}
 SerializeReferenceClassIdentifiers: []
 Assets:
+- Assets/Shaders/Aurora.shader
 - Assets/Shaders/Evaporation.shader
 - Assets/Shaders/BlackHole.shader
 - Assets/Shaders/Quasar.shader
