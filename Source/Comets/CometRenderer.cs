@@ -165,11 +165,12 @@ namespace StellarEffects.Comets
 
             if (drawn > 0) viewCamera.depthTextureMode |= DepthTextureMode.Depth;
 
-            if (!isAttached)
-            {
-                viewCamera.AddCommandBuffer(CameraEvent.AfterForwardAlpha, commandBuffer);
-                isAttached = true;
-            }
+            // Re-add every frame so comets always run last at this event, on top of the other effect buffers.
+            if (isAttached)
+                viewCamera.RemoveCommandBuffer(CameraEvent.AfterForwardAlpha, commandBuffer);
+
+            viewCamera.AddCommandBuffer(CameraEvent.AfterForwardAlpha, commandBuffer);
+            isAttached = true;
         }
 
         private static float EffectBounds(CometDefinition comet)
