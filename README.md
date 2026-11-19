@@ -13,10 +13,12 @@ A volumetric effects mod for anything in space, planets, stars, black holes, etc
 - Evaporating Planet Effect
 - Volumetric Comet Tails
 - Volumetric Neutron Star Effects
+- Volumetric Aurorae
 
 **Planned Features:**
 
-- Volumetric Aurorae
+- Universal Volumetric Effect
+- Advanced Aurorae
 
 ---
 
