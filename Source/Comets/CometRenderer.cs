@@ -165,7 +165,6 @@ namespace StellarEffects.Comets
 
             if (drawn > 0) viewCamera.depthTextureMode |= DepthTextureMode.Depth;
 
-            // Re-add every frame so comets always run last at this event, on top of the other effect buffers.
             if (isAttached)
                 viewCamera.RemoveCommandBuffer(CameraEvent.AfterForwardAlpha, commandBuffer);
 
