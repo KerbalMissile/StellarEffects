@@ -138,7 +138,12 @@ Shader "Hidden/StellarEffects/Aurora"
                 #else
                     bool sky = rawDepth >= 1.0;
                 #endif
-                if (!sky) sceneDistance = LinearEyeDepth(rawDepth) / viewDot / rs;
+                if (!sky)
+                {
+                    float sd = LinearEyeDepth(rawDepth) / viewDot / rs;
+                    float3 ps = x + v * sd;
+                    if (dot(ps, ps) > 1.69) sceneDistance = sd;
+                }
 
                 float tMax = sceneDistance;
                 if (hitPlanet) tMax = min(tMax, tP0);
