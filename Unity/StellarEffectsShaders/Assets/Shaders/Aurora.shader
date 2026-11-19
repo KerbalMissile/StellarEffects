@@ -52,10 +52,10 @@ Shader "Hidden/StellarEffects/Aurora"
             float Hash(float3 p)
             {
                 uint3 q = (uint3)(int3)p * uint3(1597334673u, 3812015801u, 2798796415u);
-                uint n = (q.x ^ q.y ^ q.z) * 1597334673u;
-                n ^= n >> 15;
-                n *= 2246822519u;
-                n ^= n >> 13;
+                uint n = q.x ^ q.y ^ q.z;
+                n ^= n >> 16;
+                n *= 73244475u;
+                n ^= n >> 16;
                 return (float)n * 2.3283064e-10;
             }
 
@@ -184,8 +184,8 @@ Shader "Hidden/StellarEffects/Aurora"
 
                     float h = r - 1.0;
                     float2 rc = float2(dot(d, t), dot(d, bt));
-                    float phi = atan2(rc.y, rc.x) + _SE_Look.y;
-                    float2 cp = float2(cos(phi), sin(phi));
+                    rc *= rsqrt(max(dot(rc, rc), 1e-12));
+                    float2 cp = float2(rc.x * ca - rc.y * sa, rc.y * ca + rc.x * sa);
                     float side = ct > 0.0 ? 1.0 : 9.3;
 
                     float lobes = FbmQ(float3(cp * 1.4 + seed, side + shimmer * 0.02), 1.0);
@@ -200,9 +200,12 @@ Shader "Hidden/StellarEffects/Aurora"
 
                     float patch = 0.3 + 0.7 * smoothstep(0.2, 0.8, Noise(float3(cp * 2.2 + seed * 1.3 + 11.0, side + shimmer * 0.05)));
 
+                    if (ringW * patch < 0.015) continue;
+
                     float rr = rayScale * 0.159;
-                    float2 warp = float2(Noise(float3(cp * 1.7 + seed + 20.0, shimmer * 0.1 + side)),
-                                         Noise(float3(cp * 1.7 + seed + 40.0, shimmer * 0.1 + side))) - 0.5;
+                    float2 warp;
+                    sincos(Noise(float3(cp * 1.7 + seed + 20.0, shimmer * 0.1 + side)) * 6.2831853, warp.y, warp.x);
+                    warp *= 0.5;
                     float3 np = float3(cp * rr + seed + warp * 0.9, shimmer + h * 6.0);
                     float rayN = FbmQ(np, detail);
                     rayN = lerp(rayN, 1.0 - abs(2.0 * rayN - 1.0), 0.35);
@@ -224,6 +227,7 @@ Shader "Hidden/StellarEffects/Aurora"
                     float3 em = _SE_Low.rgb * (eg * 1.6) + _SE_High.rgb * (er * 0.55) + _SE_Base.rgb * (eb * 0.3);
                     float inten = ringW * patch * rays * (0.25 + 0.75 * rays) * topFade * 1.3;
                     color += em * (inten * ds / height);
+                    if (dot(color, 1.0) * _SE_Look.x > 14.0) break;
                 }
 
                 float3 rgb = 1.0 - exp(-color * _SE_Look.x);
