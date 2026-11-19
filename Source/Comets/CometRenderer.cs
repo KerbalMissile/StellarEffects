@@ -6,7 +6,6 @@ namespace StellarEffects.Comets
 {
     internal class CometRenderer : MonoBehaviour
     {
-        private const float MinDistance = 1.5f;
         private const float BendReach = 0.25f;
 
         private static readonly int RectId = Shader.PropertyToID("_SE_Rect");
@@ -127,7 +126,7 @@ namespace StellarEffects.Comets
                 float effectBounds = EffectBounds(comet);
 
                 Vector4 screenRect = Vector4.zero;
-                bool visible = toCenter.magnitude > MinDistance * scaledRadius
+                bool visible = toCenter.magnitude > 0.99f * scaledRadius
                     && ScreenRect(toCenter, effectBounds * scaledRadius, view, tanX, tanY, out screenRect);
 
                 SetHidden(comet, visible && comet.HideBody);
