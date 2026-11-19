@@ -28,6 +28,7 @@ namespace StellarEffects.Blackholes
 
         private readonly List<MaterialPropertyBlock> propertyBlocks = new List<MaterialPropertyBlock>();
         private readonly Dictionary<BlackHoleDefinition, HiddenBody> hiddenBodies = new Dictionary<BlackHoleDefinition, HiddenBody>();
+        private readonly List<Renderer> scan = new List<Renderer>();
 
         private Camera viewCamera;
         private Material material;
@@ -38,8 +39,8 @@ namespace StellarEffects.Blackholes
 
         private class HiddenBody
         {
-            public Renderer[] Renderers;
-            public bool[] WasEnabled;
+            public List<Renderer> Renderers = new List<Renderer>();
+            public List<bool> WasEnabled = new List<bool>();
             public bool IsHidden;
         }
 
@@ -177,31 +178,36 @@ namespace StellarEffects.Blackholes
 
             if (hide)
             {
-                if (state.Renderers == null)
+                hole.Target.scaledBody.GetComponentsInChildren(true, scan);
+                for (int i = 0; i < scan.Count; i++)
                 {
-                    state.Renderers = hole.Target.scaledBody.GetComponentsInChildren<Renderer>(true);
-                    state.WasEnabled = new bool[state.Renderers.Length];
+                    Renderer found = scan[i];
+                    if (found == null || state.Renderers.Contains(found)) continue;
+
+                    state.Renderers.Add(found);
+                    state.WasEnabled.Add(found.enabled);
                 }
+                scan.Clear();
 
-                if (!state.IsHidden)
-                {
-                    for (int i = 0; i < state.Renderers.Length; i++)
-                        if (state.Renderers[i] != null) state.WasEnabled[i] = state.Renderers[i].enabled;
+                state.IsHidden = true;
 
-                    state.IsHidden = true;
-                }
-
-                for (int i = 0; i < state.Renderers.Length; i++)
+                for (int i = 0; i < state.Renderers.Count; i++)
                     if (state.Renderers[i] != null) state.Renderers[i].enabled = false;
             }
             else if (state.IsHidden)
             {
-                for (int i = 0; i < state.Renderers.Length; i++)
-                    if (state.Renderers[i] != null) state.Renderers[i].enabled = state.WasEnabled[i];
-
-                state.IsHidden = false;
-                state.Renderers = null;
+                RestoreState(state);
             }
+        }
+
+        private static void RestoreState(HiddenBody state)
+        {
+            for (int i = 0; i < state.Renderers.Count; i++)
+                if (state.Renderers[i] != null) state.Renderers[i].enabled = state.WasEnabled[i];
+
+            state.Renderers.Clear();
+            state.WasEnabled.Clear();
+            state.IsHidden = false;
         }
 
         private static bool ScreenRect(Vector3 toCenter, float radius, Transform view, float tanX, float tanY, out Vector4 screenRect)
@@ -243,14 +249,7 @@ namespace StellarEffects.Blackholes
         {
             foreach (var pair in hiddenBodies)
             {
-                HiddenBody state = pair.Value;
-                if (!state.IsHidden || state.Renderers == null) continue;
-
-                for (int i = 0; i < state.Renderers.Length; i++)
-                    if (state.Renderers[i] != null) state.Renderers[i].enabled = state.WasEnabled[i];
-
-                state.IsHidden = false;
-                state.Renderers = null;
+                if (pair.Value.IsHidden) RestoreState(pair.Value);
             }
         }
 
